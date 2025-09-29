@@ -15,15 +15,16 @@
 #' or the `design` object.
 #'
 #'
-#' @param x The object to plot (either a `formula` or a `PowRPriori` object).
-#' @param ... Additional arguments passed to the specific methods.
+#' @param x The object to plot.
+#' @param ... Additional arguments (not used).
+#' @param type The type of plot to create. For `PowRPriori` objects, can be
+#'   `"power_curve"` or `"data"`.
 #' @param design A `PowRPriori_design` object.
-#' @param fixed_effects A list of fixed-effects coefficients.
-#' @param random_effects A list of random-effects parameters.
+#' @param fixed_effects,random_effects Lists of effect parameters.
 #' @param family The model family (e.g., `"gaussian"`).
-#' @param x_var String, the name of the variable for the x-axis.
-#' @param color_var String, the name of the variable to map to color.
-#' @param facet_var String, the name of the variable(s) to create facets with.
+#' @param n The sample size to simulate.
+#' @param x_var,group_var,color_var,facet_var Strings specifying variables for plot aesthetics.
+#' @param n_data_points The maximum number of trajectories in spaghetti plots.
 #'
 #' @return A `ggplot` object.
 #' @export
@@ -74,20 +75,20 @@
 #'   # Plot sample data with automated aesthetics extraction
 #'   plot_sim_model(power_results, type = "data")
 #' }
-plot_sim_model <- function(x, ...) {
+plot_sim_model <- function(x, type, design, fixed_effects, random_effects, family,
+                           n, x_var, group_var, color_var, facet_var,
+                           n_data_points, ...) {
   UseMethod("plot_sim_model")
 }
 
 #' @param n The total sample size to simulate for the plot.
-#' @param group_var String, the name of the variable to group lines by (e.g., the `id`).
-#' @param n_data_points The maximum number of individual trajectories to show.
 #'
 #' @rdname plot_sim_model
 #' @export
-plot_sim_model.formula <- function(x, design, fixed_effects, random_effects, family = "gaussian",
+plot_sim_model.formula <- function(x, type = NULL, design, fixed_effects, random_effects, family = "gaussian",
                                    n, x_var = NULL, group_var = NULL,
                                    color_var = NULL, facet_var = NULL,
-                                   n_data_points = 10) {
+                                   n_data_points = 10, ...) {
   sim_data <- .create_design_matrix(design = design, current_n = n) %>%
     .simulate_outcome(formula = x, fixed_effects = fixed_effects,
                       sds_random = random_effects)
@@ -103,9 +104,11 @@ plot_sim_model.formula <- function(x, design, fixed_effects, random_effects, fam
 #'
 #' @rdname plot_sim_model
 #' @export
-plot_sim_model.PowRPriori <- function(x, type = "power_curve", x_var = NULL, group_var = NULL,
-                                   color_var = NULL, facet_var = NULL,
-                                   n_data_points = 10) {
+plot_sim_model.PowRPriori <- function(x, type = "power_curve", design = NULL, fixed_effects = NULL,
+                                      random_effects = NULL, family = NULL, n = NULL,
+                                      x_var = NULL, group_var = NULL,
+                                      color_var = NULL, facet_var = NULL,
+                                      n_data_points = 10, ...) {
   if (type == "power_curve") {
     power_data <- x$power_table
     n_var <- names(power_data)[1]
@@ -118,12 +121,12 @@ plot_sim_model.PowRPriori <- function(x, type = "power_curve", x_var = NULL, gro
     dodge <- ggplot2::position_dodge(width = ifelse(length(unique(plot_data_long$parameter))>1, 0.8, 0))
     p <- ggplot2::ggplot(plot_data_long,
                          ggplot2::aes(x = .data[[n_var]],
-                                      y = power,
-                                      color = parameter,
-                                      group = parameter)) +
+                                      y = .data$power,
+                                      color = .data$parameter,
+                                      group = .data$parameter)) +
       ggplot2::geom_line(linewidth = 1, position=dodge) +
       ggplot2::geom_point(size = 1.5, position=dodge) +
-      ggplot2::geom_errorbar(ggplot2::aes(ymin=ci_lower, ymax=ci_upper), width=.4, position=dodge) +
+      ggplot2::geom_errorbar(ggplot2::aes(ymin=.data$ci_lower, ymax=.data$ci_upper), width=.4, position=dodge) +
       ggplot2::geom_hline(yintercept = x$power_crit, linetype = "dashed", color = "red") +
       ggplot2::scale_y_continuous(labels = scales::percent, limits = c(0, 1), breaks = seq(0,1,0.1)) +
       ggplot2::scale_x_continuous(limits = c(min(plot_data_long[[n_var]]) - 1, max(plot_data_long[[n_var]]) + 1)) +
@@ -149,7 +152,10 @@ plot_sim_model.PowRPriori <- function(x, type = "power_curve", x_var = NULL, gro
 #'
 #' @param data The data frame to plot.
 #' @param design The `PowRPriori_design` object.
-#' @param ... Other plotting parameters.
+#' @param formula An lme4-style formula (e.g. `outcome ~ predictor1 * predictor2 + (1 | subject)`)
+#' @param family The model family (e.g., `"gaussian"`).
+#' @param x_var,group_var,color_var,facet_var Strings specifying variables for plot aesthetics.
+#' @param n_data_points The maximum number of trajectories in spaghetti plots.
 #'
 #' @return A `ggplot` object.
 .plot_data <- function(data, design, formula, family, x_var, group_var,
@@ -192,7 +198,7 @@ plot_sim_model.PowRPriori <- function(x, type = "power_curve", x_var = NULL, gro
                              width = 0.25, height = 0.15, alpha = 0.25, size = 1.5) +
         ggplot2::geom_point(
           data = count_data,
-          ggplot2::aes(size = n_obs^2, fill = if(!is.null(color_var)) .data[[color_var]] else NULL),
+          ggplot2::aes(size = .data$n_obs^2, fill = if(!is.null(color_var)) .data[[color_var]] else NULL),
           shape = 23,
           alpha = 1, fill = "deepskyblue3", color = "black", stroke = 0.8
         ) +

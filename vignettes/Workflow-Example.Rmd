@@ -87,7 +87,7 @@ expected_means <- tidyr::expand_grid(
 # Assign the means based on our hypothesis
 expected_means$mean_score <- c(50, 52, 50, 60)
 
-print(expected_means)
+knitr::kable(expected_means, caption = "Expected Mean Scores for Each Condition")
 ```
 In more complex examples, the sequence of the means might not be as straightforward as in this case. Then we can simply look at the resulting dataframe created by `expand_grid` to see the generated sequence of conditions.
 
@@ -149,7 +149,7 @@ my_random_effects <- list(
 
 ### Step 5: Run the Simulation
 
-We now have all the ingredients to run our power simulation. We want to find the sample size needed to achieve 80% power at an alpha level of 5% for our key hypothesis: the `groupTreatment:timepost` interaction. We'll start with N=30 and increase in steps of 10. Note that neither the 80% power nor the 5% alpha level are set in stone. Depending on the context, you might also want to adjust these. 
+We now have all the ingredients to run our power simulation. We want to find the sample size needed to achieve 80% power at an alpha level of 5% for our key hypothesis: the `groupTreatment:timepost` interaction. We'll start with N=30 and increase in steps of 10. Note that neither the 80% power nor the 5% alpha level are set in stone. Depending on the context, we might also want to adjust these. 
 
 ```{r run-simulation, eval=FALSE}
 # NOTE: This function can take a few minutes to run.
@@ -189,7 +189,7 @@ The `summary()` function provides a detailed overview, including the power table
 ```{r summary}
 summary(power_results)
 ```
-From this table (although it is formatted not optimally here), we can see that we need approximately **N=110 subjects** to reach our desired 80% power at an alpha level of 5%. Also, we can see that our model had some singular fits, especially when the sample size was smaller. Although sometimes singular fits can happen, if they happen often, this can mean that our model specifications might be problematic. Right now, we do not need to delve further into diagnostics, but investigating our random effects parameters would probably be useful here. 
+From this table, we can see that we need approximately **N=140 subjects** to reach our desired 80% power at an alpha level of 5%. Also, we can see that our model had some singular fits, especially when the sample size was smaller. Although sometimes singular fits can happen, if they happen often, this can mean that our model specifications might be problematic. Right now, we do not need to delve further into diagnostics, but investigating our random effects parameters would probably be useful here. 
 
 #### The Power Curve
 
@@ -203,7 +203,7 @@ This plot visually confirms our finding from the table.
 
 #### Plotting sample data
 
-Another useful aspect to investigate is whether the data our simulation produced looks plausible or conforms to our initial intention. We can then call the `plot_sim_model` function with `type = "data"` to plot sample data from our `PowRPriori` object.
+Another useful aspect to investigate is whether the data our simulation produced looks plausible or conforms to our initial intention. To investigate this, we can  call the `plot_sim_model` function with `type = "data"` to plot sample data from our `PowRPriori` object.
 
 ```{r, fig.width=6, fig.height=4}
 plot_sim_model(power_results, type = "data")
@@ -217,8 +217,7 @@ The `PowRPriori` workflow is flexible. Here are brief examples for other common 
 
 ### Use Case 1: A Cluster-Randomized Trial
 
-Imagine the intervention is applied to whole classes, not individual pupils. We use the hierarchical structure in `define_design` to specify this.
-In the following scenario, the intervention is applied ar class level, i.e. if a class is in the intervention group, every pupil in the respective class is also in the intervention group.
+We could also design our study so that the intervention is applied to whole classes, not individual pupils. We can use the hierarchical structure in `define_design` to specify this. In the following scenario, the intervention is applied at class level, i.e. if a class is in the intervention group, every pupil in the respective class is also in the intervention group.
 ```{r cluster-design 1}
 cluster_design <- define_design(
   id = "pupil",
@@ -234,22 +233,6 @@ cluster_design <- define_design(
 # The rest of the workflow (specifying effects, running power_sim)
 # would follow the same logic as the main example.
 ```
-
-Another possibility is that we still randomly assign pupils to the intervention or control group, but also assume that the class in which a pupil is has an effect. We would then define the following design, which looks similar to our original `my_design` object:
-```{r cluster-design 2}
-cluster_design <- define_design(
-  id = "pupil",
-  nesting_vars = list(class = 1:20), # 20 classes
-  between = list(
-    intervention = c("yes", "no") # Intervention at pupil level
-  ),
-    within = list(
-    time = c("pre", "post")
-  )
-)
-
-```
-
 ### Use Case 2: Logistic Regression (GLMM)
 
 If our outcome is binary (e.g., pass/fail), we can specify `family = "binomial"`. We then specify our expected effects as **probabilities** (between 0 and 1).

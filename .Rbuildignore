@@ -4,3 +4,5 @@
 ^Meta$
 ^\.github$
 ^LICENSE\.md$
+^PowRPriori\.Rproj$
+^test_scripts$

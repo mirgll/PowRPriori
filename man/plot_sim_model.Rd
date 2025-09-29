@@ -6,10 +6,25 @@
 \alias{plot_sim_model.PowRPriori}
 \title{Visualize Simulation Data or Power Simulation Results}
 \usage{
-plot_sim_model(x, ...)
+plot_sim_model(
+  x,
+  type,
+  design,
+  fixed_effects,
+  random_effects,
+  family,
+  n,
+  x_var,
+  group_var,
+  color_var,
+  facet_var,
+  n_data_points,
+  ...
+)
 
 \method{plot_sim_model}{formula}(
   x,
+  type = NULL,
   design,
   fixed_effects,
   random_effects,
@@ -19,46 +34,45 @@ plot_sim_model(x, ...)
   group_var = NULL,
   color_var = NULL,
   facet_var = NULL,
-  n_data_points = 10
+  n_data_points = 10,
+  ...
 )
 
 \method{plot_sim_model}{PowRPriori}(
   x,
   type = "power_curve",
+  design = NULL,
+  fixed_effects = NULL,
+  random_effects = NULL,
+  family = NULL,
+  n = NULL,
   x_var = NULL,
   group_var = NULL,
   color_var = NULL,
   facet_var = NULL,
-  n_data_points = 10
+  n_data_points = 10,
+  ...
 )
 }
 \arguments{
-\item{x}{The object to plot (either a \code{formula} or a \code{PowRPriori} object).}
+\item{x}{The object to plot.}
 
-\item{...}{Additional arguments passed to the specific methods.}
+\item{type}{The type of plot to create: \code{"power_curve"} (default) or \code{"data"}
+(to visualize the sample data from the simulation).}
 
 \item{design}{A \code{PowRPriori_design} object.}
 
-\item{fixed_effects}{A list of fixed-effects coefficients.}
-
-\item{random_effects}{A list of random-effects parameters.}
+\item{fixed_effects, random_effects}{Lists of effect parameters.}
 
 \item{family}{The model family (e.g., \code{"gaussian"}).}
 
 \item{n}{The total sample size to simulate for the plot.}
 
-\item{x_var}{String, the name of the variable for the x-axis.}
+\item{x_var, group_var, color_var, facet_var}{Strings specifying variables for plot aesthetics.}
 
-\item{group_var}{String, the name of the variable to group lines by (e.g., the \code{id}).}
+\item{n_data_points}{The maximum number of trajectories in spaghetti plots.}
 
-\item{color_var}{String, the name of the variable to map to color.}
-
-\item{facet_var}{String, the name of the variable(s) to create facets with.}
-
-\item{n_data_points}{The maximum number of individual trajectories to show.}
-
-\item{type}{The type of plot to create: \code{"power_curve"} (default) or \code{"data"}
-(to visualize the sample data from the simulation).}
+\item{...}{Additional arguments (not used).}
 }
 \value{
 A \code{ggplot} object.

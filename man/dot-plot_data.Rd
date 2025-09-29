@@ -21,7 +21,13 @@
 
 \item{design}{The \code{PowRPriori_design} object.}
 
-\item{...}{Other plotting parameters.}
+\item{formula}{An lme4-style formula (e.g. \code{outcome ~ predictor1 * predictor2 + (1 | subject)})}
+
+\item{family}{The model family (e.g., \code{"gaussian"}).}
+
+\item{x_var, group_var, color_var, facet_var}{Strings specifying variables for plot aesthetics.}
+
+\item{n_data_points}{The maximum number of trajectories in spaghetti plots.}
 }
 \value{
 A \code{ggplot} object.

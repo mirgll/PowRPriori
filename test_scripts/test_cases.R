@@ -17,12 +17,12 @@ design.numerical <- define_design("subject", between = list(group = c("Treatment
 design.continuous <- define_design("subject", between = list(group = c("Treatment", "Placebo", "Control"),
                                                              iq = list(mean = 100, sd = 15)),
                                               within = list(time = c("pre", "post")))
-tmp <- PSRtest:::.create_design_matrix(design.continuous, 30)
+tmp <- PowRPriori:::.create_design_matrix(design.continuous, 30)
 ## N_is_total test
 design.n_is_total <- define_design("pupil", between = list(group = c("intervention", "control"),
                                                        iq = list(mean = 100, sd = 15)),
                                within = list(rep_meas = c("pre", "post")))
-tmp <- PSRtest:::.create_design_matrix(design.n_is_total, 30, n_is_total = F)
+tmp <- PowRPriori:::.create_design_matrix(design.n_is_total, 30, n_is_total = F)
 
 
 ## Nested Designs
@@ -35,11 +35,11 @@ design.nested <- define_design("pupil", between = list(
                                                     pupil = list(iq = list(mean = 100, sd = 15))),
                                within = list(rep_meas = c("pre", "post")),
                                nesting_vars = list(class = factor(1:10)))
-tmp <- PSRtest:::.create_design_matrix(design.nested, 30, n_is_total = T)
+tmp <- PowRPriori:::.create_design_matrix(design.nested, 30, n_is_total = T)
 
 ## One Sample Design
 design.onesample <- define_design("subject")
-tmp <- PSRtest:::.create_design_matrix(design.onesample, 30, n_is_total = F)
+tmp <- PowRPriori:::.create_design_matrix(design.onesample, 30, n_is_total = F)
 
 
 #### Test get_effects and get_random_effects_structure
@@ -226,8 +226,8 @@ power_results <- power_sim(formula = test.formula,
                            parallel_plan = "sequential"
                            )
 
-PSRtest::plot_sim_model(power_results)
-PSRtest::plot_sim_model(power_results, type = "data", facet_var = "group2")
+PowRPriori::plot_sim_model(power_results)
+PowRPriori::plot_sim_model(power_results, type = "data", facet_var = "group2")
 
 summary(power_results)
 

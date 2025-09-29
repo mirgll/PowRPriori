@@ -1,3 +1,6 @@
+#' @importFrom stats as.formula sd setNames
+NULL
+
 
 #' Safely Convert Character Vectors to Factors
 #'
@@ -10,11 +13,10 @@
 #' @return A factor with levels in order of appearance, or the original object.
 #test
 .to_factor_safely <- function(x) {
-  # `unique(x)` behält die Reihenfolge der ersten Erscheinung bei
   if (is.character(x)) {
     return(factor(x, levels = unique(x)))
   }
-  # Wenn es schon ein Faktor ist oder etwas anderes, gib es unverändert zurück
+
   return(x)
 }
 
@@ -72,7 +74,6 @@
 #' )
 define_design <- function(id, between = NULL, within = NULL, nesting_vars = NULL) {
 
-  # Erstelle die Liste, die alle Design-Infos enthält
   design <- list(
     id = id,
     between = between,
@@ -80,7 +81,6 @@ define_design <- function(id, between = NULL, within = NULL, nesting_vars = NULL
     nesting_vars = nesting_vars
   )
 
-  # Weise dem Objekt eine eigene Klasse zu, damit S3-Methoden funktionieren
   class(design) <- "PowRPriori_design"
 
   return(design)
@@ -114,18 +114,15 @@ define_design <- function(id, between = NULL, within = NULL, nesting_vars = NULL
 #' get_fixed_effects_structure(y ~ group * time, design)
 get_fixed_effects_structure <- function(formula, design, as_code = TRUE) {
 
-  # --- 1. Setup aus dem design-Objekt extrahieren ---
   formula <- as.formula(formula)
   id_var <- design$id
 
-  # Rekonstruiere die `data_structure`-Liste für die interne Logik
   data_structure <- c(
     setNames(list(NA), id_var),
     design$between,
     design$within
   )
 
-  # --- 2. Eingaben validieren ---
   formula_vars <- all.vars(formula)
   predictor_vars <- formula_vars[-1]
   defined_vars <- names(data_structure)
@@ -136,7 +133,6 @@ get_fixed_effects_structure <- function(formula, design, as_code = TRUE) {
          paste(missing_vars, collapse = ", "), call. = FALSE)
   }
 
-  # --- 3. Dummy-Datensatz für die Analyse erstellen ---
   processed_structure <- lapply(data_structure, .to_factor_safely)
   grid_vars <- purrr::map(processed_structure, function(x) {
     if(length(x) == 1 && is.na(x)) return(1)
@@ -146,7 +142,6 @@ get_fixed_effects_structure <- function(formula, design, as_code = TRUE) {
   })
   dummy_data <- as.data.frame(grid_vars)
 
-  # --- 4. Koeffizientennamen extrahieren und als Vorlage zurückgeben ---
   fe_formula <- lme4::nobars(formula)
 
   outcome_name <- all.vars(fe_formula)[1]
@@ -156,7 +151,6 @@ get_fixed_effects_structure <- function(formula, design, as_code = TRUE) {
 
   mm_colnames <- colnames(model.matrix(fe_formula, data = dummy_data))
 
-  # Erstelle eine Vorlagen-Liste mit Platzhaltern
   template_list <- as.list(rep("...", length(mm_colnames)))
   names(template_list) <- mm_colnames
 
@@ -168,17 +162,14 @@ get_fixed_effects_structure <- function(formula, design, as_code = TRUE) {
       name <- item_names[i]
       value <- template_list[[name]]
 
-      # Prüfe, ob der Name in Backticks (`) eingeschlossen werden muss
       if (grepl("[[:punct:]]| ", name)) { # Prüft auf Sonderzeichen oder Leerzeichen
         formatted_name <- paste0("`", name, "`")
       } else {
         formatted_name <- name
       }
 
-      # Füge ein Komma hinzu, außer beim letzten Element
       comma <- if (i < length(item_names)) "," else ""
 
-      # Erstelle die formatierte Zeile
       output_lines <- c(output_lines, paste0("  ", formatted_name, " = ", value, comma))
     }
 
@@ -225,7 +216,6 @@ get_random_effects_structure <- function(formula, design, family = "gaussian", a
     design$within
   )
 
-  # --- 1. Eingaben validieren ---
   formula_vars <- all.vars(formula)
   predictor_vars <- formula_vars[-1]
   defined_vars <- names(data_structure)
@@ -240,15 +230,11 @@ get_random_effects_structure <- function(formula, design, family = "gaussian", a
     stop("Unsupported family. Possible values for family are 'gaussian', 'binomial' and 'poisson'.", call. = FALSE)
   }
 
-  # --- 2. Dummy-Datensatz für die Analyse erstellen ---
-
-  # Wandle character-Vektoren sicher in Faktoren um (erste Stufe wird Referenz)
   processed_structure <- lapply(data_structure, .to_factor_safely)
 
   if (!is.null(design$between)) {
     min_n <- prod(purrr::map_int(design$between, ~length(unique(.))))
   } else {
-    # Wenn es keine Between-Faktoren gibt, reichen 2 Probanden für die meisten Fälle
     min_n <- 2
   }
 
@@ -274,13 +260,11 @@ get_random_effects_structure <- function(formula, design, family = "gaussian", a
       # Get names for each grouping variable
       re_names <- parsed_formula$reTrms$cnms[[group]]
 
-      # Erstelle die flache Liste für diesen Term
       term_list <- list()
       for (name in re_names) {
         term_list[[name]] <- "..."
       }
 
-      # Füge Platzhalter für Korrelationen hinzu
       if (length(re_names) > 1) {
         effect_pairs <- utils::combn(re_names, 2, simplify = FALSE)
         for (pair in effect_pairs) {
@@ -294,7 +278,6 @@ get_random_effects_structure <- function(formula, design, family = "gaussian", a
 
   if(family == "gaussian") template$sd_resid <- "..."
 
-  # --- Teil 4: Output als handgeschriebenen Code formatieren ---
   if(as_code) {
     output_lines <- c("list(")
     template_names <- names(template)
@@ -303,14 +286,12 @@ get_random_effects_structure <- function(formula, design, family = "gaussian", a
       param_value <- template[[template_names[i]]]
       param_name <- ifelse(grepl("[():]", template_names[i]), paste0("`", template_names[i], "`"), template_names[i])
 
-      # Behandlung für sd_resid
       if (!is.list(param_value)) {
         line <- paste0("  ", param_name, " = ", param_value)
         output_lines <- c(output_lines, line)
         next
       }
 
-      # Behandlung für Gruppierungsfaktoren
       output_lines <- c(output_lines, paste0("  ", param_name, " = list("))
 
       sub_list_names <- names(param_value)
@@ -318,7 +299,6 @@ get_random_effects_structure <- function(formula, design, family = "gaussian", a
         sub_name <- sub_list_names[j]
         sub_val <- param_value[[sub_name]]
         comma <- if (j < length(sub_list_names)) "," else ""
-        # Füge Backticks hinzu, wenn der Name Sonderzeichen enthält
         formatted_name <- if (grepl("[():]", sub_name)) paste0("`", sub_name, "`") else sub_name
 
         output_lines <- c(output_lines, paste0("    ", formatted_name, " = ", sub_val, comma))
@@ -459,13 +439,10 @@ summary.PowRPriori <- function(object, ...) {
 
   cat("\n--- Parameter Recovery (Fixed Effects) ---\n")
 
-  # Berechne die durchschnittlich geschätzten Koeffizienten
   estimated_means <- colMeans(object$all_coefficients, na.rm = TRUE)
 
-  # Hole die "wahren", ursprünglich spezifizierten Koeffizienten
   true_effects <- unlist(object$parameters$fixed_effects)
 
-  # Erstelle einen Vergleichs-Dataframe
   recovery_df_fe <- data.frame(
     True_Value = true_effects,
     Avg_Estimated = estimated_means[names(true_effects)],
@@ -478,15 +455,13 @@ summary.PowRPriori <- function(object, ...) {
   all_re <- object$all_re_estimates
 
   if (has_random_effects) {
-    # --- Fall A: LMM oder GLMM (Modelle mit Random Effects) ---
+    # --- LMM or GLMM (Random Effects) ---
     cat("\n--- Parameter Recovery (Random Effects) ---\n")
 
     estimated_re <- colMeans(all_re, na.rm = TRUE)
 
-    # SDs & Korrelationen anzeigen (Logik von letzter Antwort)
     cat("\nStandard Deviations & Correlations:\n")
     if (!is.null(spec$icc_specs)) {
-      # Fall 1: Aus ICCs herleiten
       true_variances <- lapply(spec$icc_specs, function(icc) icc * spec$overall_variance)
       var_resid <- spec$overall_variance - sum(unlist(true_variances))
       true_sds <- c(lapply(true_variances, sqrt), sd_resid = sqrt(var_resid))
@@ -501,7 +476,6 @@ summary.PowRPriori <- function(object, ...) {
       )
       print(round(recovery_df_sd, 3))
     } else {
-      # Fall 2: Direkt aus random_effects
       true_re_list <- list()
       re_groups <- spec[!names(spec) == "sd_resid"]
       for(group in names(re_groups)){
@@ -516,7 +490,6 @@ summary.PowRPriori <- function(object, ...) {
           }
         }
       }
-      # Dann die Residuen-SD hinzufügen
       if(!is.null(spec$sd_resid)) true_re_list$sd_resid <- spec$sd_resid
       true_re <- unlist(true_re_list)
 
@@ -543,7 +516,6 @@ summary.PowRPriori <- function(object, ...) {
     }
     cat("\n\nIntra-Class Correlations (ICC):\n\n")
 
-    # Füge theoretische Residualvarianz für GLMMs hinzu
     theoretical_resid_var <- 0
     if(object$family == "binomial") theoretical_resid_var <- (pi^2)/3
     if(object$family == "poisson") theoretical_resid_var <- 1 # Vereinfachung, oft wird log(1+1/exp(Intercept)) genommen
@@ -556,7 +528,6 @@ summary.PowRPriori <- function(object, ...) {
     estimated_iccs <- re_variances / total_variance_est
     names(estimated_iccs) <- sub("\\.SD\\.Intercept", "", names(re_variances))
 
-    # Berechnung der "wahren" ICCs
     if (!is.null(spec$icc_specs)) {
       true_iccs <- unlist(spec$icc_specs)
     } else {
@@ -580,7 +551,7 @@ summary.PowRPriori <- function(object, ...) {
     print(recovery_df_icc)
 
   } else if (object$family == "gaussian") {
-    # --- Fall B: LM (Lineares Modell ohne Random Effects) ---
+    # ---LM (Linear Model w/o Random Effects) ---
     cat("\n--- Parameter Recovery (Residuals) ---\n")
 
     estimated_sd <- mean(all_re$sd_resid, na.rm = TRUE)

@@ -141,13 +141,10 @@
 #' @importFrom MASS mvrnorm
 #' @importFrom stats model.matrix rnorm rbinom rpois
 .simulate_outcome <- function(design_df, formula, fixed_effects, sds_random, family = "gaussian") {
-  # --- 1. Fixed-Effects-Komponente (Xβ) berechnen ---
   formula <- as.formula(formula)
 
-  # Feste-Effekte-Formel extrahieren (ohne Zufallseffekte)
   fe_formula <- lme4::nobars(formula)
 
-  # Design-Matrix (X) für die fixen Effekte erstellen
   design_df[[all.vars(fe_formula)[1]]] <- 0
   mm <- model.matrix(fe_formula, data = design_df)
 
@@ -161,16 +158,12 @@
     stop(error_message, call. = F)
   }
 
-  # Sicherstellen, dass die Reihenfolge der Koeffizienten übereinstimmt
-  # Fehlende Koeffizienten werden auf 0 gesetzt (z.B. für Referenzkategorien)
   fe_vector <- rep(0, ncol(mm))
   names(fe_vector) <- colnames(mm)
   fe_vector[names(fixed_effects)] <- unlist(fixed_effects)
 
-  # Matrix-Multiplikation, um den fixen Anteil des Prädiktors zu erhalten
   fixed_pred <- mm %*% fe_vector
 
-  # --- 2. Random-Effects-Komponenten simulieren ---
   random_pred <- 0
   if(length(lme4::findbars(formula)) > 0) {
     random_effect_terms <- lme4::findbars(formula)
@@ -189,17 +182,12 @@
         n_levels <- nrow(unique_levels)
         n_effects <- length(re_names)
 
-        # --- Neue Logik zur Verarbeitung der "flachen" Parameter-Liste ---
-
-        # 1. Trenne SDs von Korrelationen
         is_cor <- grepl("^cor", names(params))
         sds_list <- params[!is_cor]
         cor_list <- params[is_cor]
 
-        # Stelle sicher, dass die SDs in der richtigen Reihenfolge sind
         sds_vector <- unlist(sds_list)[re_names]
 
-        # 2. Baue die Korrelationsmatrix (R) aus der flachen Liste
         R <- diag(n_effects)
         colnames(R) <- rownames(R) <- re_names
 
@@ -217,21 +205,15 @@
           }
         }
 
-        # 3. Baue die Kovarianz-Matrix (Sigma) mit der D-R-D Formel
         if (n_effects == 1) {
-          # Sonderfall: Nur ein Effekt, Kovarianz-Matrix ist einfach die Varianz
           cov_matrix <- matrix(sds_vector^2)
         } else {
-          # Allgemeiner Fall: D-R-D Formel für mehrere Effekte
           D <- diag(sds_vector)
           cov_matrix <- D %*% R %*% D
         }
 
-        # 4. Ziehe Zufallseffekte mit mvrnorm (Logik bleibt gleich)
         mu <- rep(0, n_effects)
         ran_effs <- as.matrix(MASS::mvrnorm(n = n_levels, mu = rep(0, n_effects), Sigma = cov_matrix))
-
-        # Erstelle die Nachschlagetabelle und führe den Join durch
         ran_effs_df <- as.data.frame(ran_effs)
         colnames(ran_effs_df) <- paste0("re_", re_names)
 
@@ -239,7 +221,6 @@
 
         temp_df <- dplyr::left_join(design_df, lookup_table, by = individual_group_vars)
 
-        # Berechne den Beitrag der Zufallseffekte für jede Beobachtung
         re_model_matrix <- model.matrix(effects_formula, data = temp_df)
         re_values_per_obs <- temp_df[, paste0("re_", re_names), drop = FALSE]
 
@@ -252,34 +233,22 @@
   outcome_name <- all.vars(formula)[1]
 
   if (family == "gaussian") {
-    # --- Linear Models (LM / LMM) ---
-
     resid_error <- stats::rnorm(nrow(design_df), mean = 0, sd = sds_random$sd_resid)
     y <- eta + resid_error
 
     design_df[[outcome_name]] <- as.vector(y)
 
   } else if (family == "binomial") {
-    # ---Logistic Models (GLM / GLMM) ---
-
-    # Inverse Logit-Funktion (Link-Funktion)
+    # Inverse Logit
     p <- 1 / (1 + exp(-eta))
-
-    # Simuliere binäre Daten (0 oder 1) basierend auf der Wahrscheinlichkeit p
     y <- stats::rbinom(n = nrow(design_df), size = 1, prob = p)
-
     design_df[[outcome_name]] <- y
 
   } else if (family == "poisson") {
-    # --- Fall C: Poisson-Modelle (GLM / GLMM) ---
-    # Der lineare Prädiktor wird in eine erwartete Zählrate (Lambda) umgewandelt.
 
-    # Inverse Log-Funktion (Link-Funktion)
+    # Inverse Log
     lambda <- exp(eta)
-
-    # Simuliere Zähldaten basierend auf der Rate lambda
     y <- stats::rpois(n = nrow(design_df), lambda = lambda)
-
     design_df[[outcome_name]] <- y
 
   } else {
