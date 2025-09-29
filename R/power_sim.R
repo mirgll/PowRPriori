@@ -1,7 +1,7 @@
 #' Perform a Power Analysis for (Generalized) Linear Mixed-Effects Models via Data Simulation
 #'
 #' @description
-#' This is the main function of the `PSRtest` package. It iteratively simulates
+#' This is the main function of the `PowRPriori` package. It iteratively simulates
 #' datasets for increasing sample sizes to determine the required sample size
 #' to achieve a desired level of statistical power for specific model parameters.
 #'
@@ -13,7 +13,7 @@
 #'
 #'
 #' @param formula An lme4-style model formula (e.g. `outcome ~ predictor1 * predictor2 + (1 | id)`).
-#' @param design A `PSRtest_design` object created by `define_design()`.
+#' @param design A `PowRPriori_design` object created by `define_design()`.
 #' @param test_parameter A character vector of the variable names to test for power.
 #'   If `NULL` (default), power is calculated for all fixed effects except the intercept. Note: The parameter names need to
 #'   comply with the names expected by the model. Correctly naming of the variables is aided by the output of the `get_fixed_effects_structure()` helper function.
@@ -43,7 +43,7 @@
 #' @param parallel_plan A string specifying the `future` plan for parallel processing.
 #'   Defaults to `"multisession"` to enable parrallel computing. Use `"sequential"` for debugging.
 #'
-#' @return An object of class `PSRtest`, which is a list containing the power table,
+#' @return An object of class `PowRPriori`, which is a list containing the power table,
 #'   a sample dataset, all simulation parameters, and detailed results from all runs
 #'   (coefficients and random effect estimates).
 #'
@@ -482,6 +482,6 @@ power_sim <- function(
     all_re_estimates = as.data.frame(re_estimates_df, check.names = FALSE),
     critical_model_issues = has_critical_model_issues
   )
-  class(result) <- "PSRtest"
+  class(result) <- "PowRPriori"
   return(result)
 }

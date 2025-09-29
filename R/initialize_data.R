@@ -5,7 +5,7 @@
 #' size to generate a single data frame representing all observations for one
 #' simulation run. It handles within-, between-, nested, and crossed factors.
 #'
-#' @param design A `PSRtest_design` object from `define_design()`.
+#' @param design A `PowRPriori_design` object from `define_design()`.
 #' @param current_n The sample size for which the design matrix should be generated.
 #' @param n_is_total A boolean that controls how `current_n` is interpreted. `TRUE` assumes that the whole sample used for the simulation should be size
 #' `current_n`, `FALSE` assumes that `current_n` specifies the size of each cell as defined by `design`.

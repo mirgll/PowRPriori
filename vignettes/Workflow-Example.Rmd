@@ -28,7 +28,7 @@ Finally, we will show brief examples of how to adapt the workflow for other comm
 
 ```{r load-packages, message=FALSE}
 # First, let's load PowRPriori and other helpful packages
-library(PSRtest)
+library(PowRPriori)
 library(tidyr) # For creating the means table
 ```
 
@@ -178,7 +178,7 @@ After the simulation is complete, we can inspect the results object.
 ```{r load-results, include=FALSE, eval=TRUE}
 # This hidden code block loads the pre-computed results
 power_results <- readRDS(
-  system.file("extdata", "power_results_vignette.rds", package = "PSRtest")
+  system.file("extdata", "power_results_vignette.rds", package = "PowRPriori")
 )
 ```
 

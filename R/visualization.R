@@ -3,21 +3,21 @@
 #' @description
 #' Generic plotting function with methods for different objects.
 #' - When used on an lme4-style `formula`, it simulates and plots a single plausible dataset.
-#' - When used on a `PSRtest` object, it plots either a power curve from the object or a dataset from the simulation.
+#' - When used on a `PowRPriori` object, it plots either a power curve from the object or a dataset from the simulation.
 #'
 #' The plotting of the dataset is designed to aid in evaluating whether the simulated data is plausible in the context
 #' of the desired study design and model specifications. It can help determine whether the chosen parameters are sensible or might
-#' need some adapting. The power curve, plotted from the resulting `PSRtest` object of the `power_sim` function visualizes the iterations
+#' need some adapting. The power curve, plotted from the resulting `PowRPriori` object of the `power_sim` function visualizes the iterations
 #' of the simulation across the different sample sizes for which the power was calculated during simulation.
 #'
 #' @details
-#' The parameters `x_var, group_var, color_var and facet_var` are `NULL` by default. If left `NULL`, they are automatically extracted from the `PSRtest` object
+#' The parameters `x_var, group_var, color_var and facet_var` are `NULL` by default. If left `NULL`, they are automatically extracted from the `PowRPriori` object
 #' or the `design` object.
 #'
 #'
-#' @param x The object to plot (either a `formula` or a `PSRtest` object).
+#' @param x The object to plot (either a `formula` or a `PowRPriori` object).
 #' @param ... Additional arguments passed to the specific methods.
-#' @param design A `PSRtest_design` object.
+#' @param design A `PowRPriori_design` object.
 #' @param fixed_effects A list of fixed-effects coefficients.
 #' @param random_effects A list of random-effects parameters.
 #' @param family The model family (e.g., `"gaussian"`).
@@ -56,7 +56,7 @@
 #'   n = 30
 #' )
 #' \dontrun{
-#' # 2. Plot from PSRtest object after simulation
+#' # 2. Plot from PowRPriori object after simulation
 #'   power_results <- power_sim(
 #'     formula = y ~ group * time + (1|subject),
 #'     design = design,
@@ -103,7 +103,7 @@ plot_sim_model.formula <- function(x, design, fixed_effects, random_effects, fam
 #'
 #' @rdname plot_sim_model
 #' @export
-plot_sim_model.PSRtest <- function(x, type = "power_curve", x_var = NULL, group_var = NULL,
+plot_sim_model.PowRPriori <- function(x, type = "power_curve", x_var = NULL, group_var = NULL,
                                    color_var = NULL, facet_var = NULL,
                                    n_data_points = 10) {
   if (type == "power_curve") {
@@ -148,7 +148,7 @@ plot_sim_model.PSRtest <- function(x, type = "power_curve", x_var = NULL, group_
 #' if they are not supplied directly via the `plot_sim_model` function.
 #'
 #' @param data The data frame to plot.
-#' @param design The `PSRtest_design` object.
+#' @param design The `PowRPriori_design` object.
 #' @param ... Other plotting parameters.
 #'
 #' @return A `ggplot` object.
