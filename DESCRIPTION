@@ -1,27 +1,34 @@
 Package: PowRPriori
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Power analysis via data simulation for (generalized) linear mixed effects models
+Version: 0.1.0
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    person("Markus", "Grill", role = c("aut", "cre"))
+Description: Conduct a priori power analyses via Monte-Carlo style data simulation for linear and generalized linear mixed-effects models (LMMs/GLMMs). 
+    Provides a user-friendly workflow with helper functions to easily fixed and random effects as well as diagnostic functions
+    to evaluate the adequacy of the results of the power analysis.
+License: CC BY 4.0
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Imports: 
+    dplyr,
     doFuture,
     foreach,
     future,
     ggplot2,
+    lme4,
     lmerTest,
-    magrittr,
+    MASS,
+    purrr,
     rlang,
+    scales,
+    stats,
     tidyr,
-    tidyselect
+    tidyselect,
+    utils
 Suggests: 
     knitr,
     rmarkdown
 VignetteBuilder: knitr
-URL: https://github.com/mirgll/PSRtest
-BugReports: https://github.com/mirgll/PSRtest/issues
+URL: https://github.com/mirgll/PowRPriori
+BugReports: https://github.com/mirgll/PowRPriori/issues
