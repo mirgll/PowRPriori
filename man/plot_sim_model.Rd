@@ -3,7 +3,7 @@
 \name{plot_sim_model}
 \alias{plot_sim_model}
 \alias{plot_sim_model.formula}
-\alias{plot_sim_model.PSRtest}
+\alias{plot_sim_model.PowRPriori}
 \title{Visualize Simulation Data or Power Simulation Results}
 \usage{
 plot_sim_model(x, ...)
@@ -22,7 +22,7 @@ plot_sim_model(x, ...)
   n_data_points = 10
 )
 
-\method{plot_sim_model}{PSRtest}(
+\method{plot_sim_model}{PowRPriori}(
   x,
   type = "power_curve",
   x_var = NULL,
@@ -33,11 +33,11 @@ plot_sim_model(x, ...)
 )
 }
 \arguments{
-\item{x}{The object to plot (either a \code{formula} or a \code{PSRtest} object).}
+\item{x}{The object to plot (either a \code{formula} or a \code{PowRPriori} object).}
 
 \item{...}{Additional arguments passed to the specific methods.}
 
-\item{design}{A \code{PSRtest_design} object.}
+\item{design}{A \code{PowRPriori_design} object.}
 
 \item{fixed_effects}{A list of fixed-effects coefficients.}
 
@@ -67,16 +67,16 @@ A \code{ggplot} object.
 Generic plotting function with methods for different objects.
 \itemize{
 \item When used on an lme4-style \code{formula}, it simulates and plots a single plausible dataset.
-\item When used on a \code{PSRtest} object, it plots either a power curve from the object or a dataset from the simulation.
+\item When used on a \code{PowRPriori} object, it plots either a power curve from the object or a dataset from the simulation.
 }
 
 The plotting of the dataset is designed to aid in evaluating whether the simulated data is plausible in the context
 of the desired study design and model specifications. It can help determine whether the chosen parameters are sensible or might
-need some adapting. The power curve, plotted from the resulting \code{PSRtest} object of the \code{power_sim} function visualizes the iterations
+need some adapting. The power curve, plotted from the resulting \code{PowRPriori} object of the \code{power_sim} function visualizes the iterations
 of the simulation across the different sample sizes for which the power was calculated during simulation.
 }
 \details{
-The parameters \verb{x_var, group_var, color_var and facet_var} are \code{NULL} by default. If left \code{NULL}, they are automatically extracted from the \code{PSRtest} object
+The parameters \verb{x_var, group_var, color_var and facet_var} are \code{NULL} by default. If left \code{NULL}, they are automatically extracted from the \code{PowRPriori} object
 or the \code{design} object.
 }
 \examples{
@@ -107,7 +107,7 @@ plot_sim_model(
   n = 30
 )
 \dontrun{
-# 2. Plot from PSRtest object after simulation
+# 2. Plot from PowRPriori object after simulation
   power_results <- power_sim(
     formula = y ~ group * time + (1|subject),
     design = design,

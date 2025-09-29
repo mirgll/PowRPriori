@@ -19,7 +19,7 @@
 \arguments{
 \item{data}{The data frame to plot.}
 
-\item{design}{The \code{PSRtest_design} object.}
+\item{design}{The \code{PowRPriori_design} object.}
 
 \item{...}{Other plotting parameters.}
 }

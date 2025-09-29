@@ -11,7 +11,7 @@ get_fixed_effects_structure(formula, design, as_code = TRUE)
 Since this function only uses the fixed-effects part of the model, specifying the random effects
 is optional here.}
 
-\item{design}{A \code{PSRtest_design} object created with \code{define_design()}.}
+\item{design}{A \code{PowRPriori_design} object created with \code{define_design()}.}
 
 \item{as_code}{If \code{TRUE} (default), prints a copy-pasteable R code template
 to the console.}

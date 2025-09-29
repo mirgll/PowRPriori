@@ -7,7 +7,7 @@
 .create_design_matrix(design, current_n, n_is_total = TRUE)
 }
 \arguments{
-\item{design}{A \code{PSRtest_design} object from \code{define_design()}.}
+\item{design}{A \code{PowRPriori_design} object from \code{define_design()}.}
 
 \item{current_n}{The sample size for which the design matrix should be generated.}
 

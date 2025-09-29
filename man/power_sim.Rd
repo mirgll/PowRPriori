@@ -27,7 +27,7 @@ power_sim(
 \arguments{
 \item{formula}{An lme4-style model formula (e.g. \code{outcome ~ predictor1 * predictor2 + (1 | id)}).}
 
-\item{design}{A \code{PSRtest_design} object created by \code{define_design()}.}
+\item{design}{A \code{PowRPriori_design} object created by \code{define_design()}.}
 
 \item{test_parameter}{A character vector of the variable names to test for power.
 If \code{NULL} (default), power is calculated for all fixed effects except the intercept. Note: The parameter names need to
@@ -73,12 +73,12 @@ the sample size per cell (see \code{define_design()} for details on nested desig
 Defaults to \code{"multisession"} to enable parrallel computing. Use \code{"sequential"} for debugging.}
 }
 \value{
-An object of class \code{PSRtest}, which is a list containing the power table,
+An object of class \code{PowRPriori}, which is a list containing the power table,
 a sample dataset, all simulation parameters, and detailed results from all runs
 (coefficients and random effect estimates).
 }
 \description{
-This is the main function of the \code{PSRtest} package. It iteratively simulates
+This is the main function of the \code{PowRPriori} package. It iteratively simulates
 datasets for increasing sample sizes to determine the required sample size
 to achieve a desired level of statistical power for specific model parameters.
 }

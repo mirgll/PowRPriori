@@ -14,7 +14,7 @@ get_random_effects_structure(
 \arguments{
 \item{formula}{An lme4-style model formula (e.g. \code{outcome ~ predictor1 * predictor2 + (1 | id)}).}
 
-\item{design}{A \code{PSRtest_design} object created with \code{define_design()}.}
+\item{design}{A \code{PowRPriori_design} object created with \code{define_design()}.}
 
 \item{family}{The model family (\code{"gaussian"}, \code{"binomial"}, \code{"poisson"}).
 Determines if \code{sd_resid} should be included in the template.}

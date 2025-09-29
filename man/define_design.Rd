@@ -21,11 +21,11 @@ at every level of these factors.}
 random effects structure (e.g., \code{(1|school/class)}).}
 }
 \value{
-A \code{PSRtest_design} object, which is a list containing the design specifications.
+A \code{PowRPriori_design} object, which is a list containing the design specifications.
 }
 \description{
 This is the primary setup function for any power simulation. It creates a
-special \code{PSRtest_design} object that contains all the necessary information
+special \code{PowRPriori_design} object that contains all the necessary information
 about the variables and structure of your study.
 }
 \details{

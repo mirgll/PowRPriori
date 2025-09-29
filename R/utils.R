@@ -24,7 +24,7 @@
 #'
 #' @description
 #' This is the primary setup function for any power simulation. It creates a
-#' special `PSRtest_design` object that contains all the necessary information
+#' special `PowRPriori_design` object that contains all the necessary information
 #' about the variables and structure of your study.
 #'
 #' @details
@@ -50,7 +50,7 @@
 #' @param nesting_vars A list of variables that are only used for grouping in the
 #'   random effects structure (e.g., `(1|school/class)`).
 #'
-#' @return A `PSRtest_design` object, which is a list containing the design specifications.
+#' @return A `PowRPriori_design` object, which is a list containing the design specifications.
 #' @export
 #'
 #' @examples
@@ -81,7 +81,7 @@ define_design <- function(id, between = NULL, within = NULL, nesting_vars = NULL
   )
 
   # Weise dem Objekt eine eigene Klasse zu, damit S3-Methoden funktionieren
-  class(design) <- "PSRtest_design"
+  class(design) <- "PowRPriori_design"
 
   return(design)
 }
@@ -97,7 +97,7 @@ define_design <- function(id, between = NULL, within = NULL, nesting_vars = NULL
 #' @param formula An lme4-style model formula (e.g. `outcome ~ predictor1 * predictor2 + (1 | id)`).
 #'                Since this function only uses the fixed-effects part of the model, specifying the random effects
 #'                is optional here.
-#' @param design A `PSRtest_design` object created with `define_design()`.
+#' @param design A `PowRPriori_design` object created with `define_design()`.
 #' @param as_code If `TRUE` (default), prints a copy-pasteable R code template
 #'   to the console.
 #'
@@ -199,7 +199,7 @@ get_fixed_effects_structure <- function(formula, design, as_code = TRUE) {
 #' to the console, where the user only needs to fill in placeholders (`...`) for the values.
 #'
 #' @param formula An lme4-style model formula (e.g. `outcome ~ predictor1 * predictor2 + (1 | id)`).
-#' @param design A `PSRtest_design` object created with `define_design()`.
+#' @param design A `PowRPriori_design` object created with `define_design()`.
 #' @param family The model family (`"gaussian"`, `"binomial"`, `"poisson"`).
 #'   Determines if `sd_resid` should be included in the template.
 #' @param as_code If `TRUE` (default), prints a copy-pasteable R code template
@@ -428,17 +428,17 @@ fixed_effects_from_average_outcome <- function(formula, outcome, family = "gauss
 #' Summarize a Power Simulation Result
 #'
 #' @description
-#' Provides a detailed and context-aware summary of a `PSRtest` object. The output
+#' Provides a detailed and context-aware summary of a `PowRPriori` object. The output
 #' includes the power table, parameter recovery diagnostics for fixed and random
 #' effects, and (if applicable) calculated Intra-Class Correlations (ICCs). The output is
 #' tailored for different model types (LM, LMM, GLMM).
 #'
-#' @param object An object of class `PSRtest` returned by `power_sim()`.
+#' @param object An object of class `PowRPriori` returned by `power_sim()`.
 #' @param ... Additional arguments (not used).
 #'
 #' @return Prints a formatted summary to the console.
 #' @export
-summary.PSRtest <- function(object, ...) {
+summary.PowRPriori <- function(object, ...) {
 
   if(object$critical_model_issues) {
     cat(
