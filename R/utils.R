@@ -8,7 +8,7 @@
 #'
 #' @param x A vector from a design specification.
 #' @return A factor with levels in order of appearance, or the original object.
-
+#test
 .to_factor_safely <- function(x) {
   # `unique(x)` behält die Reihenfolge der ersten Erscheinung bei
   if (is.character(x)) {
