@@ -42,7 +42,7 @@ This is a classic 2x2 mixed design, with `group` as a between-subject factor and
 
 ### Step 1: Define the Study Design
 
-First, we translate our study design into a `PSRtest_design` object. We specify the name of our subject ID (`subject`), our between-subject factors, and our within-subject factors. Note that the `id` parameter does not necessarily have to represent a person but can be any analysis unit on the lowest level of your mixed effects design (e.g. a plot in a garden).
+First, we translate our study design into a `PowRPriori_design` object. We specify the name of our subject ID (`subject`), our between-subject factors, and our within-subject factors. Note that the `id` parameter does not necessarily have to represent a person but can be any analysis unit on the lowest level of your mixed effects design (e.g. a plot in a garden).
 
 ```{r define-design}
 my_design <- define_design(
@@ -203,7 +203,7 @@ This plot visually confirms our finding from the table.
 
 #### Plotting sample data
 
-Another useful aspect to investigate is whether the data our simulation produced looks plausible or conforms to our initial intention. We can then call the `plot_sim_model` function with `type = "data"` to plot sample data from our `PSRtest` object.
+Another useful aspect to investigate is whether the data our simulation produced looks plausible or conforms to our initial intention. We can then call the `plot_sim_model` function with `type = "data"` to plot sample data from our `PowRPriori` object.
 
 ```{r, fig.width=6, fig.height=4}
 plot_sim_model(power_results, type = "data")
