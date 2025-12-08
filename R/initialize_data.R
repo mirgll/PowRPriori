@@ -151,9 +151,9 @@
   if(!identical(names(fixed_effects), colnames(mm))){
     mismatched_names <- setdiff(names(fixed_effects), colnames(mm))
     error_message <- paste0(
-      "Die folgenden Namen in 'fixed_effects' passen nicht zum Modell: ",
+      "The following names in 'fixed_effects' don't fit with the specified model: ",
       paste(mismatched_names, collapse = ", "),
-      "\nTipp: Benutze die Funktion `get_fixed_effects_structure()` mit deiner Formel und Datenstruktur, um die korrekten Namen zu sehen."
+      "\nHint: Use `get_fixed_effects_structure()` with your specified formula and data structure to get the correct names."
     )
     stop(error_message, call. = F)
   }

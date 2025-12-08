@@ -6,7 +6,7 @@ Authors@R:
 Description: Conduct a priori power analyses via Monte-Carlo style data simulation for linear and generalized linear mixed-effects models (LMMs/GLMMs). 
     Provides a user-friendly workflow with helper functions to easily fixed and random effects as well as diagnostic functions
     to evaluate the adequacy of the results of the power analysis.
-License: CC BY 4.0
+License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
@@ -30,7 +30,9 @@ Imports:
     tibble
 Suggests: 
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat (>= 3.0.0)
 VignetteBuilder: knitr
 URL: https://github.com/mirgll/PowRPriori
 BugReports: https://github.com/mirgll/PowRPriori/issues
+Config/testthat/edition: 3

@@ -6,3 +6,4 @@
 ^LICENSE\.md$
 ^PowRPriori\.Rproj$
 ^test_scripts$
+^cran-comments\.md$

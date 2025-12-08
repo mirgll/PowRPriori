@@ -41,7 +41,7 @@
 #' @param n_sims The number of simulations to run for each sample size step. Defaults to 2000.
 #' @param alpha The significance level (alpha) for the power calculation. Defaults to 0.05.
 #' @param parallel_plan A string specifying the `future` plan for parallel processing.
-#'   Defaults to `"multisession"` to enable parrallel computing. Use `"sequential"` for debugging.
+#'   Defaults to `"multisession"` to enable parallel computing. Use `"sequential"` for debugging.
 #'
 #' @return An object of class `PowRPriori`, which is a list containing the power table,
 #'   a sample dataset, all simulation parameters, and detailed results from all runs
@@ -57,7 +57,7 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#'
 #'   design <- define_design(
 #'     id = "subject",
 #'     between = list(group = c("Control", "Treatment")),
@@ -75,7 +75,7 @@
 #'     subject = list(`(Intercept)` = 3),
 #'     sd_resid = 5
 #'   )
-#'
+#'\donttest{
 #'   power_results <- power_sim(
 #'     formula = y ~ group * time + (1|subject),
 #'     design = design,
@@ -89,7 +89,7 @@
 #'
 #'   summary(power_results)
 #'   plot_sim_model(power_results)
-#' }
+#'}
 
 power_sim <- function(
     formula,
@@ -119,7 +119,7 @@ power_sim <- function(
   }
 
   if (is.null(test_parameter)) {
-    test_parameter <- grep("(Intercept)", names(get_fixed_effects_structure(formula, design, as_code = FALSE)),
+    test_parameter <- grep("(Intercept)", names(get_fixed_effects_structure(formula, design)),
                            value = TRUE, invert = TRUE, fixed = TRUE)
     message(paste0(
       "Info: `test_parameter` value left at NULL. Power will be calculated for all fixed effects:\n -> ",
@@ -145,7 +145,7 @@ power_sim <- function(
     )
   }
 
-  all_fixed_effects <- names(get_fixed_effects_structure(formula, design, as_code = FALSE))
+  all_fixed_effects <- names(get_fixed_effects_structure(formula, design))
   mismatched_test_parameter <- setdiff(test_parameter, all_fixed_effects)
 
   if (length(mismatched_test_parameter) > 0) {
@@ -171,7 +171,7 @@ power_sim <- function(
   }
 
   if (!is.null(random_effects) & has_random_effects) {
-    expected_re_names <- get_random_effects_structure(formula, design, family = family, as_code = FALSE)
+    expected_re_names <- get_random_effects_structure(formula, design, family = family)
     missing_re_groups <- setdiff(names(expected_re_names), names(random_effects))
     extra_re_groups <- setdiff(names(random_effects), names(expected_re_names))
 
@@ -206,7 +206,7 @@ power_sim <- function(
       }
       sds_random <- random_effects
     } else if (!is.null(icc_specs)) {
-      expected_re <- get_random_effects_structure(formula, design, as_code = FALSE)
+      expected_re <- get_random_effects_structure(formula, design)
       for (group in names(icc_specs)) {
         if (length(expected_re[[group]]) > 1) {
           stop(paste0(

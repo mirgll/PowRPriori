@@ -70,7 +70,7 @@ the sample size per cell (see \code{define_design()} for details on nested desig
 \item{alpha}{The significance level (alpha) for the power calculation. Defaults to 0.05.}
 
 \item{parallel_plan}{A string specifying the \code{future} plan for parallel processing.
-Defaults to \code{"multisession"} to enable parrallel computing. Use \code{"sequential"} for debugging.}
+Defaults to \code{"multisession"} to enable parallel computing. Use \code{"sequential"} for debugging.}
 }
 \value{
 An object of class \code{PowRPriori}, which is a list containing the power table,
@@ -89,7 +89,7 @@ parameter is necessary.\code{icc_specs} should only be used when simulating a mo
 vignette for a more detailed description of the complete workflow for using this function.
 }
 \examples{
-\dontrun{
+
   design <- define_design(
     id = "subject",
     between = list(group = c("Control", "Treatment")),
@@ -107,7 +107,7 @@ vignette for a more detailed description of the complete workflow for using this
     subject = list(`(Intercept)` = 3),
     sd_resid = 5
   )
-
+\donttest{
   power_results <- power_sim(
     formula = y ~ group * time + (1|subject),
     design = design,

@@ -4,7 +4,7 @@
 \alias{get_fixed_effects_structure}
 \title{Get the Expected Fixed-Effects Structure}
 \usage{
-get_fixed_effects_structure(formula, design, as_code = TRUE)
+get_fixed_effects_structure(formula, design)
 }
 \arguments{
 \item{formula}{An lme4-style model formula (e.g. \code{outcome ~ predictor1 * predictor2 + (1 | id)}).
@@ -23,7 +23,7 @@ as a template for the \code{fixed_effects} argument in \code{power_sim()}.
 \description{
 Analyzes a model formula and a design object to generate a template for the
 \code{fixed_effects} parameter. This is a helper function designed to prevent
-typos and ensure all necessary coefficients are specified. By default, this function prints a copy-pasteable code snippet
+typos and ensure all necessary coefficients are specified. By default, this function prints a copy-paste-able code snippet
 to the console, where the user only needs to fill in placeholders (\code{...}) for the values.
 }
 \examples{

@@ -4,12 +4,7 @@
 \alias{get_random_effects_structure}
 \title{Get the Expected Random-Effects Structure}
 \usage{
-get_random_effects_structure(
-  formula,
-  design,
-  family = "gaussian",
-  as_code = TRUE
-)
+get_random_effects_structure(formula, design, family = "gaussian")
 }
 \arguments{
 \item{formula}{An lme4-style model formula (e.g. \code{outcome ~ predictor1 * predictor2 + (1 | id)}).}
@@ -29,7 +24,7 @@ template for the \code{random_effects} argument in \code{power_sim()}.
 \description{
 Analyzes the random effects terms in a model formula and generates a template
 for the specified \code{random_effects} parameters. This helps in specifying the required
-standard deviations and correlations correctly. By default, this function prints a copy-pasteable code snippet
+standard deviations and correlations correctly. By default, this function prints a copy-paste-able code snippet
 to the console, where the user only needs to fill in placeholders (\code{...}) for the values.
 }
 \examples{

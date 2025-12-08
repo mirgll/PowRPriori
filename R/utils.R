@@ -198,6 +198,7 @@ get_fixed_effects_structure <- function(formula, design, as_code = TRUE) {
 #'
 #' @return Invisibly returns a nested list with placeholders, serving as a
 #'   template for the `random_effects` argument in `power_sim()`.
+#' @importFrom dplyr bind_rows
 #' @export
 #'
 #' @examples
@@ -222,7 +223,7 @@ get_random_effects_structure <- function(formula, design, family = "gaussian", a
   missing_vars <- setdiff(predictor_vars, defined_vars)
 
   if (length(missing_vars) > 0) {
-    stop("Die folgenden Variablen aus der Formel fehlen in der 'data_structure'-Liste: ",
+    stop("The following variables present in the formula are missing in the design object: ",
          paste(missing_vars, collapse = ", "), call. = FALSE)
   }
 
@@ -239,6 +240,7 @@ get_random_effects_structure <- function(formula, design, family = "gaussian", a
   }
 
   dummy_data <- .create_design_matrix(design, current_n = min_n)
+  dummy_data <- dplyr::bind_rows(dummy_data,dummy_data)
   dummy_data[[all.vars(formula)[1]]] <- 1
 
   template <- list()

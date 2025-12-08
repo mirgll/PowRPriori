@@ -54,11 +54,11 @@ my_design <- define_design(
 
 ### Step 2: Define the Statistical Model
 
-Here we need to translate our research question into a statistical model which can be tested. This package uses lme4-style formula to do that. Our research question implies an interaction effect, since we want to know if the effect of `time` is different between the Control and the Treatmen groups. We will also include a random intercept for `subject` to account for the fact that measurements from the same person are correlated (representing the "nesting" of the data).
+Here we need to translate our research question into a statistical model which can be tested. This package uses lme4-style formula to do that. Our research question implies an interaction effect, since we want to know if the effect of `time` is different between the Control and the Treatment groups. We will also include a random intercept for `subject` to account for the fact that measurements from the same person are correlated (representing the "nesting" of the data).
 
 Our lme4-style model formula is: `score ~ group * time + (1 | subject)`
 
-On the lefthand side of the tilde is our outcome variable and on the righthand side our combination of fixed (`group * time`) and random (`(1 | subject)`) effects.
+On the left hand side of the tilde is our outcome variable and on the right hand side our combination of fixed (`group * time`) and random (`(1 | subject)`) effects.
 
 ### Step 3: Specify the Hypothesized Effects
 
@@ -66,9 +66,9 @@ This is the most critical part of our power analysis. We need to define the effe
 
 First, if we already know the values of the coefficients, we can use the `get_fixed_effects_structure` helper function to let `PowRPriori` automatically print a ready-to-use code snippet to the console containing all correctly named coefficients and which is structured so that `PowRPriori` understands it. The values are left as placeholders (`...`), so all that is left to do is fill them. Second, if we do not know the values of the coefficients, `PowRPRiori` also allows us to think in terms of expected outcomes and calculate the necessary coefficients for us. Let's go through both scenarios.
 
-##### Scenario A: We do not know the values of the coeffiecents
+##### Scenario A: We do not know the values of the coefficients
 
-We will start with the case where we do not know the values of the coefficents, but can estimate reasonable values for the mean outcome scores in each condition.
+We will start with the case where we do not know the values of the coefficients, but can estimate reasonable values for the mean outcome scores in each condition.
 
 Let's assume the memory score is on a 100-point scale. We hypothesize the following mean scores for each condition:
 
@@ -103,9 +103,9 @@ my_fixed_effects <- fixed_effects_from_average_outcome(
 print(my_fixed_effects)
 ```
 
-##### Scenario B: We already know the values of the coeffiecents
+##### Scenario B: We already know the values of the coefficients
 
-Let us now look at a scenario where we already know the values for the coefficient. We will simply assume that we already knew the values produced by the `fixed_effects_from_average_outcome` function before. We will also use `my_design` here, which we created above. In combination with supplying the formula, the process of obtaining the correct sructure for the fixed effects becomes rather simple.
+Let us now look at a scenario where we already know the values for the coefficient. We will simply assume that we already knew the values produced by the `fixed_effects_from_average_outcome` function before. We will also use `my_design` here, which we created above. In combination with supplying the formula, the process of obtaining the correct structure for the fixed effects becomes rather simple.
 
 ```{r get fixed effects structure}
 get_fixed_effects_structure(formula = score ~ group * time + (1 | subject), design = my_design)

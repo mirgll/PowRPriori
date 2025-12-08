@@ -56,7 +56,7 @@
 #'   random_effects = random_effects,
 #'   n = 30
 #' )
-#' \dontrun{
+#' \donttest{
 #' # 2. Plot from PowRPriori object after simulation
 #'   power_results <- power_sim(
 #'     formula = y ~ group * time + (1|subject),
@@ -74,7 +74,7 @@
 #'
 #'   # Plot sample data with automated aesthetics extraction
 #'   plot_sim_model(power_results, type = "data")
-#' }
+#'}
 plot_sim_model <- function(x, type, design, fixed_effects, random_effects, family,
                            n, x_var, group_var, color_var, facet_var,
                            n_data_points, ...) {

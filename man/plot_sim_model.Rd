@@ -120,7 +120,7 @@ plot_sim_model(
   random_effects = random_effects,
   n = 30
 )
-\dontrun{
+\donttest{
 # 2. Plot from PowRPriori object after simulation
   power_results <- power_sim(
     formula = y ~ group * time + (1|subject),

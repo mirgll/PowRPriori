@@ -3,7 +3,7 @@
 
 <!-- badges: start -->
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
-[![R-CMD-check](https://github.com/mirgll/PSRtest/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/mirgll/PSRtest/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/mirgll/PowRPriori/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/mirgll/PowRPriori/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 `PowRPriori` is an R package for conducting a priori power analyses for (generalized) linear mixed-effects models via data simulation. 

@@ -101,7 +101,6 @@ means_df_1 <- tidyr::expand_grid(
   time = c("pre", "post")
 )
 means_df_1$mean <- c(10, 12, 10, 15) # Control (10->12), Treatment (10->15)
-tmp<-fixed_effects_from_average_outcome(formula = test_formula_1, outcome = means_df_1)
 print(fixed_effects_from_average_outcome(formula = test_formula_1, outcome = means_df_1))
 cat("\n--------------------------------------------------\n")
 
