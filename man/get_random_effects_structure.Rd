@@ -13,9 +13,6 @@ get_random_effects_structure(formula, design, family = "gaussian")
 
 \item{family}{The model family (\code{"gaussian"}, \code{"binomial"}, \code{"poisson"}).
 Determines if \code{sd_resid} should be included in the template.}
-
-\item{as_code}{If \code{TRUE} (default), prints a copy-pasteable R code template
-to the console.}
 }
 \value{
 Invisibly returns a nested list with placeholders, serving as a

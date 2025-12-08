@@ -98,8 +98,6 @@ define_design <- function(id, between = NULL, within = NULL, nesting_vars = NULL
 #'                Since this function only uses the fixed-effects part of the model, specifying the random effects
 #'                is optional here.
 #' @param design A `PowRPriori_design` object created with `define_design()`.
-#' @param as_code If `TRUE` (default), prints a copy-pasteable R code template
-#'   to the console.
 #'
 #' @return Invisibly returns a named list with placeholders, which can be used
 #'   as a template for the `fixed_effects` argument in `power_sim()`.
@@ -169,7 +167,7 @@ print.PowRPriori_fe_structure <- function(x, ...){
     name <- item_names[i]
     value <- x[[name]]
 
-    if (grepl("[[:punct:]]| ", name)) { # Prüft auf Sonderzeichen oder Leerzeichen
+    if (grepl("[[:punct:]]| ", name)) {
       formatted_name <- paste0("`", name, "`")
     } else {
       formatted_name <- name
@@ -200,8 +198,6 @@ print.PowRPriori_fe_structure <- function(x, ...){
 #' @param design A `PowRPriori_design` object created with `define_design()`.
 #' @param family The model family (`"gaussian"`, `"binomial"`, `"poisson"`).
 #'   Determines if `sd_resid` should be included in the template.
-#' @param as_code If `TRUE` (default), prints a copy-pasteable R code template
-#'   to the console.
 #'
 #' @return Invisibly returns a nested list with placeholders, serving as a
 #'   template for the `random_effects` argument in `power_sim()`.

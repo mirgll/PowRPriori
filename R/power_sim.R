@@ -84,7 +84,8 @@
 #'     test_parameter = "groupTreatment:timepost",
 #'     n_start = 20,
 #'     n_increment = 5,
-#'     n_sims = 100 # Use low n_sims for quick examples
+#'     n_sims = 100, # Use low n_sims for quick examples
+#'     parallel_plan = "multisession"
 #'   )
 #'
 #'   summary(power_results)
@@ -260,6 +261,7 @@ power_sim <- function(
   sim_step <- 1
 
   future::plan(parallel_plan)
+  on.exit(future::plan("sequential"), add = TRUE)
 
   # Main loop for simulation and power analysis
   while (last_power < power_crit && sim_step <= max_simulation_steps) {
@@ -316,7 +318,7 @@ power_sim <- function(
 
       if(!is.null(model_fit)) {
         model_summary <- as.data.frame(summary(model_fit)$coefficients)
-        p_val_col <- grep("Pr(>|.|)", names(model_summary), value=T)
+        p_val_col <- grep("Pr(>|.|)", names(model_summary), value=TRUE)
         for(param in test_parameter) {
           if (param %in% rownames(model_summary)) {
             p_values[paste0("p_", param)] <- model_summary[param, p_val_col]

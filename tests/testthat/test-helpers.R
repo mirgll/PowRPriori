@@ -38,7 +38,7 @@ test_that("get_fixed_effects_structure returns correct names", {
 
   design <- define_design(id = "sub", between = list(group=c("A", "B")), within = list(time=c("A", "B")))
 
-  fe_names <- names(get_fixed_effects_structure(y ~ group * time, design, as_code = FALSE))
+  fe_names <- names(get_fixed_effects_structure(y ~ group * time, design))
 
   expect_equal(fe_names, c("(Intercept)", "groupB", "timeB", "groupB:timeB"))
 })

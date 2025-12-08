@@ -116,7 +116,8 @@ vignette for a more detailed description of the complete workflow for using this
     test_parameter = "groupTreatment:timepost",
     n_start = 20,
     n_increment = 5,
-    n_sims = 100 # Use low n_sims for quick examples
+    n_sims = 100, # Use low n_sims for quick examples
+    parallel_plan = "multisession"
   )
 
   summary(power_results)

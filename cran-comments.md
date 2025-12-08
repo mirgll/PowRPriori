@@ -23,5 +23,3 @@ This is a resubmission. In this version, I have addressed the comments from the 
 Note from check:
 * Possibly misspelled words in DESCRIPTION: GLMMs, LMMs.
   These are standard acronyms for (Generalized) Linear Mixed Models in the context of statistics and are defined in the Description text.
-
-

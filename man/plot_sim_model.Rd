@@ -105,12 +105,12 @@ fixed_effects <- list(
   `(Intercept)` = 10,
   groupTreatment = 2,
   timepost = 1,
-  `groupTreatment:timepost` = 1.5
+  `groupTreatment:timepost` = 3
 )
 
 random_effects <- list(
   subject = list(`(Intercept)` = 3),
-  sd_resid = 5
+  sd_resid = 3
 )
 
 plot_sim_model(
@@ -130,7 +130,8 @@ plot_sim_model(
     test_parameter = "groupTreatment:timepost",
     n_start = 20,
     n_increment = 5,
-    n_sims = 100 # Using a smaller n_sims for a quick example
+    n_sims = 100, # Using a smaller n_sims for a quick example
+    parallel_plan = "multisession"
   )
 
   # Power curve

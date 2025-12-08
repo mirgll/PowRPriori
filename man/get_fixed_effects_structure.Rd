@@ -12,9 +12,6 @@ Since this function only uses the fixed-effects part of the model, specifying th
 is optional here.}
 
 \item{design}{A \code{PowRPriori_design} object created with \code{define_design()}.}
-
-\item{as_code}{If \code{TRUE} (default), prints a copy-pasteable R code template
-to the console.}
 }
 \value{
 Invisibly returns a named list with placeholders, which can be used
