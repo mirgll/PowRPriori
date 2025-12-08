@@ -91,7 +91,7 @@ define_design <- function(id, between = NULL, within = NULL, nesting_vars = NULL
 #' @description
 #' Analyzes a model formula and a design object to generate a template for the
 #' `fixed_effects` parameter. This is a helper function designed to prevent
-#' typos and ensure all necessary coefficients are specified. By default, this function prints a copy-pasteable code snippet
+#' typos and ensure all necessary coefficients are specified. By default, this function prints a copy-paste-able code snippet
 #' to the console, where the user only needs to fill in placeholders (`...`) for the values.
 #'
 #' @param formula An lme4-style model formula (e.g. `outcome ~ predictor1 * predictor2 + (1 | id)`).
@@ -112,7 +112,7 @@ define_design <- function(id, between = NULL, within = NULL, nesting_vars = NULL
 #'   within = list(time = c("pre", "post"))
 #' )
 #' get_fixed_effects_structure(y ~ group * time, design)
-get_fixed_effects_structure <- function(formula, design, as_code = TRUE) {
+get_fixed_effects_structure <- function(formula, design) {
 
   formula <- as.formula(formula)
   id_var <- design$id
@@ -154,31 +154,38 @@ get_fixed_effects_structure <- function(formula, design, as_code = TRUE) {
   template_list <- as.list(rep("...", length(mm_colnames)))
   names(template_list) <- mm_colnames
 
-  if(as_code) {
-    output_lines <- c("list(")
-    item_names <- names(template_list)
+  class(template_list) <- c("PowRPriori_fe_structure", "list")
+  return(template_list)
+}
 
-    for (i in seq_along(item_names)) {
-      name <- item_names[i]
-      value <- template_list[[name]]
+#' @export
+#' @noRd
+print.PowRPriori_fe_structure <- function(x, ...){
 
-      if (grepl("[[:punct:]]| ", name)) { # Prüft auf Sonderzeichen oder Leerzeichen
-        formatted_name <- paste0("`", name, "`")
-      } else {
-        formatted_name <- name
-      }
+  output_lines <- c("list(")
+  item_names <- names(x)
 
-      comma <- if (i < length(item_names)) "," else ""
+  for (i in seq_along(item_names)) {
+    name <- item_names[i]
+    value <- x[[name]]
 
-      output_lines <- c(output_lines, paste0("  ", formatted_name, " = ", value, comma))
+    if (grepl("[[:punct:]]| ", name)) { # Prüft auf Sonderzeichen oder Leerzeichen
+      formatted_name <- paste0("`", name, "`")
+    } else {
+      formatted_name <- name
     }
 
-    output_lines <- c(output_lines, ")")
+    comma <- if (i < length(item_names)) "," else ""
 
-    cat("Copy the following code and fill the placeholders (...) with your desired coefficients:\n\n")
-    cat(paste("fixed_effects <-", paste(output_lines, collapse = "\n")))
+    output_lines <- c(output_lines, paste0("  ", formatted_name, " = ", value, comma))
   }
-  return(invisible(template_list))
+
+  output_lines <- c(output_lines, ")")
+
+  cat("Copy the following code and fill the placeholders (...) with your desired coefficients:\n\n")
+  cat(paste("fixed_effects <-", paste(output_lines, collapse = "\n")))
+
+  invisible(x)
 }
 
 #' Get the Expected Random-Effects Structure
@@ -186,7 +193,7 @@ get_fixed_effects_structure <- function(formula, design, as_code = TRUE) {
 #' @description
 #' Analyzes the random effects terms in a model formula and generates a template
 #' for the specified `random_effects` parameters. This helps in specifying the required
-#' standard deviations and correlations correctly. By default, this function prints a copy-pasteable code snippet
+#' standard deviations and correlations correctly. By default, this function prints a copy-paste-able code snippet
 #' to the console, where the user only needs to fill in placeholders (`...`) for the values.
 #'
 #' @param formula An lme4-style model formula (e.g. `outcome ~ predictor1 * predictor2 + (1 | id)`).
@@ -207,7 +214,7 @@ get_fixed_effects_structure <- function(formula, design, as_code = TRUE) {
 #'   within = list(time = c("pre", "post"))
 #' )
 #' get_random_effects_structure(y ~ time + (time|subject), design)
-get_random_effects_structure <- function(formula, design, family = "gaussian", as_code = TRUE) {
+get_random_effects_structure <- function(formula, design, family = "gaussian") {
 
   formula <- as.formula(formula)
 
@@ -280,43 +287,48 @@ get_random_effects_structure <- function(formula, design, family = "gaussian", a
 
   if(family == "gaussian") template$sd_resid <- "..."
 
-  if(as_code) {
-    output_lines <- c("list(")
-    template_names <- names(template)
+  class(template) <- c("PowRPriori_re_structure", "list")
+  return(template)
+}
 
-    for (i in seq_along(template_names)) {
-      param_value <- template[[template_names[i]]]
-      param_name <- ifelse(grepl("[():]", template_names[i]), paste0("`", template_names[i], "`"), template_names[i])
+#' @export
+#' @noRd
+print.PowRPriori_re_structure <- function(x, ...){
+  output_lines <- c("list(")
+  template_names <- names(x)
 
-      if (!is.list(param_value)) {
-        line <- paste0("  ", param_name, " = ", param_value)
-        output_lines <- c(output_lines, line)
-        next
-      }
+  for (i in seq_along(template_names)) {
+    param_value <- x[[template_names[i]]]
+    param_name <- ifelse(grepl("[():]", template_names[i]), paste0("`", template_names[i], "`"), template_names[i])
 
-      output_lines <- c(output_lines, paste0("  ", param_name, " = list("))
-
-      sub_list_names <- names(param_value)
-      for (j in seq_along(sub_list_names)) {
-        sub_name <- sub_list_names[j]
-        sub_val <- param_value[[sub_name]]
-        comma <- if (j < length(sub_list_names)) "," else ""
-        formatted_name <- if (grepl("[():]", sub_name)) paste0("`", sub_name, "`") else sub_name
-
-        output_lines <- c(output_lines, paste0("    ", formatted_name, " = ", sub_val, comma))
-      }
-
-      closing_bracket <- if (i < length(template_names)) "  )," else "  )"
-      output_lines <- c(output_lines, closing_bracket)
+    if (!is.list(param_value)) {
+      line <- paste0("  ", param_name, " = ", param_value)
+      output_lines <- c(output_lines, line)
+      next
     }
 
-    output_lines <- c(output_lines, ")")
+    output_lines <- c(output_lines, paste0("  ", param_name, " = list("))
 
-    cat("Copy the following structure and fill the placeholders (...) with your random effects values:\n\n")
-    cat("random_effects <-", paste(output_lines, collapse = "\n"))
+    sub_list_names <- names(param_value)
+    for (j in seq_along(sub_list_names)) {
+      sub_name <- sub_list_names[j]
+      sub_val <- param_value[[sub_name]]
+      comma <- if (j < length(sub_list_names)) "," else ""
+      formatted_name <- if (grepl("[():]", sub_name)) paste0("`", sub_name, "`") else sub_name
+
+      output_lines <- c(output_lines, paste0("    ", formatted_name, " = ", sub_val, comma))
+    }
+
+    closing_bracket <- if (i < length(template_names)) "  )," else "  )"
+    output_lines <- c(output_lines, closing_bracket)
   }
 
-  return(invisible(template))
+  output_lines <- c(output_lines, ")")
+
+  cat("Copy the following structure and fill the placeholders (...) with your random effects values:\n\n")
+  cat("random_effects <-", paste(output_lines, collapse = "\n"))
+
+  invisible(x)
 }
 
 
