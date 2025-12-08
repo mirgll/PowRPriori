@@ -12,7 +12,7 @@ This is a resubmission. In this version, I have addressed the comments from the 
    I have removed the linebreaks from the description field in the DESCRIPTION file.
 
 2. References:
-   The package implements standard simulation workflows based on 'lme4' model specifications. As no novel statistical methods are introduced, no specific references were added to the description.
+   The package implements standard simulation workflows, using standard 'lme4' model specifications. As no novel statistical methods are introduced, no specific references were added to the description.
 
 3. Examples (\dontrun vs \donttest):
    Since all examples that were previously wrapped in \dontrun{} are example simulations that take longer than 5 seconds to execute, I have replaced \dontrun{} with \donttest{} in all cases
