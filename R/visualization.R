@@ -21,7 +21,7 @@
 #'   `"power_curve"` or `"data"`.
 #' @param design A `PowRPriori_design` object.
 #' @param fixed_effects,random_effects Lists of effect parameters.
-#' @param family The model family (e.g., `"gaussian"`).
+#' @param family The model family. Defaults to `"gaussian"`, other possible values are `"binomial"` or `"poisson"`.
 #' @param n The sample size to simulate.
 #' @param x_var,group_var,color_var,facet_var Strings specifying variables for plot aesthetics.
 #' @param n_data_points The maximum number of trajectories in spaghetti plots.
@@ -154,7 +154,7 @@ plot_sim_model.PowRPriori <- function(x, type = "power_curve", design = NULL, fi
 #' @param data The data frame to plot.
 #' @param design The `PowRPriori_design` object.
 #' @param formula An lme4-style formula (e.g. `outcome ~ predictor1 * predictor2 + (1 | subject)`)
-#' @param family The model family (e.g., `"gaussian"`).
+#' @param family The model family. Defaults to `"gaussian"`, other possible values are `"binomial"` or `"poisson"`.
 #' @param x_var,group_var,color_var,facet_var Strings specifying variables for plot aesthetics.
 #' @param n_data_points The maximum number of trajectories in spaghetti plots.
 #'

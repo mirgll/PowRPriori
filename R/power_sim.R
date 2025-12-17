@@ -32,7 +32,7 @@
 #' @param n_start The starting sample size for the simulation.
 #' @param n_increment The step size for increasing the sample size in each iteration.
 #' @param max_simulation_steps A hard stop for the simulation, limiting the number of
-#'   sample size steps to prevent infinite loops. Defaults to 40 steps.
+#'   sample size steps to prevent infinite loops. Defaults to 100 steps.
 #' @param n_issue_stop_prop The proportion of model issues (e.g., singular fits,
 #'   non-convergence) at which the simulation will be automatically canceled. Defaults to a proportion of 20%.
 #' @param n_is_total Boolean that controls how sample sizes are interpreted. If `TRUE`
@@ -104,7 +104,7 @@ power_sim <- function(
     power_crit = 0.80,
     n_start,
     n_increment,
-    max_simulation_steps = 40,
+    max_simulation_steps = 100,
     n_issue_stop_prop = 0.2,
     n_is_total = TRUE,
     n_sims = 2000,
@@ -258,13 +258,13 @@ power_sim <- function(
   results_list <- list()
   current_n <- n_start
   last_power <- 0
-  sim_step <- 1
+  sim_step <- 0
 
   future::plan(parallel_plan)
   on.exit(future::plan("sequential"), add = TRUE)
 
   # Main loop for simulation and power analysis
-  while (last_power < power_crit && sim_step <= max_simulation_steps) {
+  while (last_power < power_crit && sim_step < max_simulation_steps) {
     message(paste("\n--- Starting simulation for", n_var, "=", current_n, "with", n_sims, "simulations ---"))
 
     sim_results <- foreach(sim = 1:n_sims, .combine = "c", .multicombine = TRUE, .options.future = list(seed = TRUE)) %dofuture% {
@@ -459,7 +459,11 @@ power_sim <- function(
   rownames(final_results_df) <- NULL
   names(final_results_df)[1] <- n_var
   if (!has_random_effects) final_results_df <- final_results_df %>% dplyr::select(!c("n_singular", "n_convergence", "n_other_warnings"))
-  if(!has_critical_model_issues) message(paste0("\nPower of at least ", power_crit, " achieved at N = ", final_results_df[[n_var]][nrow(final_results_df)], " (Power: ", round(last_power, 2), ")."))
+  if(!has_critical_model_issues & sim_step != max_simulation_steps) {
+    message(paste0("\nPower of at least ", power_crit, " achieved at N = ", final_results_df[[n_var]][nrow(final_results_df)], " (Power: ", round(last_power, 2), ")."))
+  } else {
+    message(paste0("Maximum number of simulation steps reached (", max_simulation_steps, "). Simulation stopped due to risk of infinite loop.\nYour model potentially needs adaptation, or, if you want to continue with the current parameters, try increasing the `n_start` parameter."))
+  }
 
   names(coefficients_df) <- gsub("[()]", "", names(coefficients_df))
   names(fixed_effects) <- gsub("[()]", "", names(fixed_effects))

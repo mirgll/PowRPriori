@@ -35,7 +35,7 @@ design.nested <- define_design("pupil", between = list(
                                                     pupil = list(iq = list(mean = 100, sd = 15))),
                                within = list(rep_meas = c("pre", "post")),
                                nesting_vars = list(class = factor(1:10)))
-tmp <- PowRPriori:::.create_design_matrix(design.nested, 30, n_is_total = T)
+tmp <- PowRPriori:::.create_design_matrix(design.nested, 5, n_is_total = T)
 
 ## One Sample Design
 design.onesample <- define_design("subject")
@@ -221,10 +221,10 @@ power_results <- power_sim(formula = test.formula,
                            fixed_effects = fixed_effects,
                            random_effects = random_effects,
                            power_crit = 0.8,
-                           n_start = 130,
+                           n_start = 50,
                            n_increment = 5,
                            n_sims = 200,
-                           parallel_plan = "sequential"
+                           parallel_plan = "sequential", max_simulation_steps = 4
                            )
 
 PowRPriori::plot_sim_model(power_results)
