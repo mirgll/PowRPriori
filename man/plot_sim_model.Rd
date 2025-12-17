@@ -64,7 +64,7 @@ plot_sim_model(
 
 \item{fixed_effects, random_effects}{Lists of effect parameters.}
 
-\item{family}{The model family (e.g., \code{"gaussian"}).}
+\item{family}{The model family. Defaults to \code{"gaussian"}, other possible values are \code{"binomial"} or \code{"poisson"}.}
 
 \item{n}{The total sample size to simulate for the plot.}
 

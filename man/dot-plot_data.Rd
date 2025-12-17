@@ -23,7 +23,7 @@
 
 \item{formula}{An lme4-style formula (e.g. \code{outcome ~ predictor1 * predictor2 + (1 | subject)})}
 
-\item{family}{The model family (e.g., \code{"gaussian"}).}
+\item{family}{The model family. Defaults to \code{"gaussian"}, other possible values are \code{"binomial"} or \code{"poisson"}.}
 
 \item{x_var, group_var, color_var, facet_var}{Strings specifying variables for plot aesthetics.}
 

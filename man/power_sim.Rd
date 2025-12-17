@@ -16,7 +16,7 @@ power_sim(
   power_crit = 0.8,
   n_start,
   n_increment,
-  max_simulation_steps = 40,
+  max_simulation_steps = 100,
   n_issue_stop_prop = 0.2,
   n_is_total = TRUE,
   n_sims = 2000,
@@ -56,7 +56,7 @@ or \code{"poisson"} (for poisson GLMMs).}
 \item{n_increment}{The step size for increasing the sample size in each iteration.}
 
 \item{max_simulation_steps}{A hard stop for the simulation, limiting the number of
-sample size steps to prevent infinite loops. Defaults to 40 steps.}
+sample size steps to prevent infinite loops. Defaults to 100 steps.}
 
 \item{n_issue_stop_prop}{The proportion of model issues (e.g., singular fits,
 non-convergence) at which the simulation will be automatically canceled. Defaults to a proportion of 20\%.}
