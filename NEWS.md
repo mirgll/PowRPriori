@@ -1,3 +1,3 @@
-# PowRPriori 0.1.1
+# PowRPriori 0.1.2
 
-* Initial CRAN submission.
+* Update to existing package.

@@ -264,6 +264,45 @@ plot_sim_model(power_results, type = "power_curve")
 plot_sim_model(power_results, type = "spaghetti", facet_var = "group2")
 summary(power_results)
 
+## Test for nested design
+nested_design <- define_design(
+  id = "pupil",
+  between = list(
+    class = list(intervention = c("yes", "no"))
+  ),
+  nesting_vars = list(class = factor(1:10))
+)
+
+nested_formula <- outcome ~ intervention + (1 | class/pupil)
+
+get_fixed_effects_structure(nested_formula, nested_design)
+
+fixed_nested_effects <- list(
+  `(Intercept)` = ...,
+  interventionno = ...
+)
+
+dummy_data <- PowRPriori:::.create_design_matrix(nested_design, 30, n_is_total = F)
+dummy_data[[all.vars(nested_formula)[1]]] <- 1
+dummy_data_2 <- dummy_data
+
+dummy_data_2 <- dummy_data_2 %>%
+  dplyr::select(c(nested_design$id, names(nested_design$nesting_vars))) %>%
+  dplyr::mutate(dplyr::across(dplyr::everything(),
+                              function(x){
+                                if(is.numeric(x)){
+                                  x <- length(x) + x
+                                } else if (is.factor(x)){
+                                  x <- paste0(as.character(x), "_2")
+                                }
+                              })) %>%
+  dplyr::bind_cols(., dummy_data %>% dplyr::select(!c(nested_design$id, names(nested_design$nesting_vars))))
+
+dummy_data <- dplyr::bind_rows(dummy_data, dummy_data_2)
+
+
+get_random_effects_structure(nested_formula, nested_design, family = "binomial")
+
 ## Workflow for linear model (no random effects)
 # --- 1. Design Definition ---
 # A simple between-subject design with two groups

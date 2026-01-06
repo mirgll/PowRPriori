@@ -115,15 +115,38 @@ get_fixed_effects_structure <- function(formula, design) {
   formula <- as.formula(formula)
   id_var <- design$id
 
-  data_structure <- c(
-    setNames(list(NA), id_var),
-    design$between,
-    design$within
-  )
+  all_available_vars <- list()
+  all_available_vars[[id_var]] <- NA
+
+  if(!is.null(design$nesting_vars)) {
+    all_available_vars <- c(all_available_vars, design$nesting_vars)
+  }
+
+  if(!is.null(design$within)) {
+    all_available_vars <- c(all_available_vars, design$within)
+  }
+
+  if(!is.null(design$between)) {
+    for(name in names(design$between)) {
+      element <- design$between[[name]]
+      is_nested_level <- is.list(element) && !is.null(names(element)) && !all(c("mean", "sd") %in% names(element))
+
+      if(is_nested_level) {
+        all_available_vars <- c(all_available_vars, element)
+
+        if(!name %in% names(all_available_vars)) {
+          all_available_vars[[name]] <- NA
+        }
+      } else {
+        all_available_vars[[name]] <- element
+      }
+    }
+  }
 
   formula_vars <- all.vars(formula)
-  predictor_vars <- formula_vars[-1]
-  defined_vars <- names(data_structure)
+  predictor_vars <- formula_vars[-1] # Outcome ignorieren
+  defined_vars <- names(all_available_vars)
+
   missing_vars <- setdiff(predictor_vars, defined_vars)
 
   if (length(missing_vars) > 0) {
@@ -131,7 +154,7 @@ get_fixed_effects_structure <- function(formula, design) {
          paste(missing_vars, collapse = ", "), call. = FALSE)
   }
 
-  processed_structure <- lapply(data_structure, .to_factor_safely)
+  processed_structure <- lapply(all_available_vars, .to_factor_safely)
   grid_vars <- purrr::map(processed_structure, function(x) {
     if(length(x) == 1 && is.na(x)) return(1)
     if (is.factor(x) || is.numeric(x)) return(x[1])
@@ -213,16 +236,39 @@ print.PowRPriori_fe_structure <- function(x, ...){
 get_random_effects_structure <- function(formula, design, family = "gaussian") {
 
   formula <- as.formula(formula)
+  id_var <- design$id
 
-    data_structure <- c(
-    setNames(list(NA), design$id),
-    design$between,
-    design$within
-  )
+  all_available_vars <- list()
+  all_available_vars[[id_var]] <- NA
+
+  if(!is.null(design$nesting_vars)) {
+    all_available_vars <- c(all_available_vars, design$nesting_vars)
+  }
+
+  if(!is.null(design$within)) {
+    all_available_vars <- c(all_available_vars, design$within)
+  }
+
+  if(!is.null(design$between)) {
+    for(name in names(design$between)) {
+      element <- design$between[[name]]
+      is_nested_level <- is.list(element) && !is.null(names(element)) && !all(c("mean", "sd") %in% names(element))
+
+      if(is_nested_level) {
+        all_available_vars <- c(all_available_vars, element)
+
+        if(!name %in% names(all_available_vars)) {
+          all_available_vars[[name]] <- NA
+        }
+      } else {
+        all_available_vars[[name]] <- element
+      }
+    }
+  }
 
   formula_vars <- all.vars(formula)
   predictor_vars <- formula_vars[-1]
-  defined_vars <- names(data_structure)
+  defined_vars <- names(all_available_vars)
   missing_vars <- setdiff(predictor_vars, defined_vars)
 
   if (length(missing_vars) > 0) {
@@ -234,17 +280,13 @@ get_random_effects_structure <- function(formula, design, family = "gaussian") {
     stop("Unsupported family. Possible values for family are 'gaussian', 'binomial' and 'poisson'.", call. = FALSE)
   }
 
-  processed_structure <- lapply(data_structure, .to_factor_safely)
+  all_available_vars <- lapply(all_available_vars, .to_factor_safely)
 
-  if (!is.null(design$between)) {
-    min_n <- prod(purrr::map_int(design$between, ~length(unique(.))))
-  } else {
-    min_n <- 2
-  }
+  if(is.null(design$within)) design$within <- list(dummy_within = c(1,2))
 
-  dummy_data <- .create_design_matrix(design, current_n = min_n)
-  dummy_data <- dplyr::bind_rows(dummy_data,dummy_data)
+  dummy_data <- .create_design_matrix(design, current_n = 1, n_is_total = F)
   dummy_data[[all.vars(formula)[1]]] <- 1
+
 
   template <- list()
   parsed_formula <- tryCatch(

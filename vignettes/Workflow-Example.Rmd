@@ -245,6 +245,7 @@ The `PowRPriori` workflow is flexible. Here are brief examples for other common 
 
 ### Use Case 1: A Cluster-Randomized Trial
 
+With `PowRPriori`, you can also define nested designs. 
 You could also design your study so that the intervention is applied to whole classes, not individual pupils. You can use the hierarchical structure in `define_design` to specify this. In the following scenario, the intervention is applied at class level, i.e. if a class is in the intervention group, every pupil in the respective class is also in the intervention group.
 
 ```{r cluster-design 1}
