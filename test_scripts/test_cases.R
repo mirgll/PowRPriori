@@ -434,7 +434,7 @@ glmer_fixed_effects <- fixed_effects_from_average_outcome(
 
 # Specify the random effects (only a random intercept in this case)
 glmer_random_effects <- list(
-  subject = list(`(Intercept)` = 1)
+  subject = list(`(Intercept)` = 0.5)
 )
 
 # --- 3. Power Simulation ---
@@ -445,10 +445,10 @@ glmer_results <- power_sim(
   random_effects = glmer_random_effects,
   test_parameter = "conditionB:timepost",
   family = "binomial",
-  n_start = 300,
+  n_start = 500,
   n_increment = 5,
   power_crit = 0.80,
-  n_sims = 250,
+  n_sims = 2000,
   parallel_plan = "sequential"
 )
 

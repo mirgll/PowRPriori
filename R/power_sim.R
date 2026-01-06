@@ -445,7 +445,7 @@ power_sim <- function(
                        "At N = ", current_n, ", ", round(n_model_issues / n_sims * 100), "% of models ",
                        "had fitting issues.\n",
                        "This suggests a potential issue with the model specification or the defined parameters.\n",
-                       "Please check model parameters (e.g. random effects structure, predictor scaling, etc.)."))
+                       "Please check model parameters (e.g. random effects structure, predictor scaling, etc.).\n"))
         break
       }
     }
@@ -459,10 +459,13 @@ power_sim <- function(
   rownames(final_results_df) <- NULL
   names(final_results_df)[1] <- n_var
   if (!has_random_effects) final_results_df <- final_results_df %>% dplyr::select(!c("n_singular", "n_convergence", "n_other_warnings"))
-  if(!has_critical_model_issues & sim_step != max_simulation_steps) {
-    message(paste0("\nPower of at least ", power_crit, " achieved at N = ", final_results_df[[n_var]][nrow(final_results_df)], " (Power: ", round(last_power, 2), ")."))
+
+  if(has_critical_model_issues) {
+    message(paste0("\nSimulation stopped due to the percentage of simulated models showing fitting issues being larger than the specified `n_issue_stop_prop` parameter."))
+  } else if (sim_step == max_simulation_steps) {
+    message(paste0("\nMaximum number of simulation steps reached (", max_simulation_steps, "). Simulation stopped due to risk of infinite loop.\nYour model potentially needs adaptation, or, if you want to continue with the current parameters, try increasing the `n_start` parameter."))
   } else {
-    message(paste0("Maximum number of simulation steps reached (", max_simulation_steps, "). Simulation stopped due to risk of infinite loop.\nYour model potentially needs adaptation, or, if you want to continue with the current parameters, try increasing the `n_start` parameter."))
+    message(paste0("\nPower of at least ", power_crit, " achieved at N = ", final_results_df[[n_var]][nrow(final_results_df)], " (Power: ", round(last_power, 2), ")."))
   }
 
   names(coefficients_df) <- gsub("[()]", "", names(coefficients_df))
