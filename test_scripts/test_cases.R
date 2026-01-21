@@ -278,30 +278,32 @@ nested_formula <- outcome ~ intervention + (1 | class/pupil)
 get_fixed_effects_structure(nested_formula, nested_design)
 
 fixed_nested_effects <- list(
-  `(Intercept)` = ...,
-  interventionno = ...
+  `(Intercept)` = 10,
+  interventionno = 5
 )
 
-dummy_data <- PowRPriori:::.create_design_matrix(nested_design, 30, n_is_total = F)
-dummy_data[[all.vars(nested_formula)[1]]] <- 1
-dummy_data_2 <- dummy_data
-
-dummy_data_2 <- dummy_data_2 %>%
-  dplyr::select(c(nested_design$id, names(nested_design$nesting_vars))) %>%
-  dplyr::mutate(dplyr::across(dplyr::everything(),
-                              function(x){
-                                if(is.numeric(x)){
-                                  x <- length(x) + x
-                                } else if (is.factor(x)){
-                                  x <- paste0(as.character(x), "_2")
-                                }
-                              })) %>%
-  dplyr::bind_cols(., dummy_data %>% dplyr::select(!c(nested_design$id, names(nested_design$nesting_vars))))
-
-dummy_data <- dplyr::bind_rows(dummy_data, dummy_data_2)
-
-
 get_random_effects_structure(nested_formula, nested_design, family = "binomial")
+
+random_nested_effects <- list(
+  `pupil:class` = list(
+    `(Intercept)` = 2
+  ),
+  class = list(
+    `(Intercept)` = 2
+  )
+)
+
+power_results <- power_sim(formula = nested_formula,
+                           design = nested_design,
+                           test_parameter = c("interventionno"),
+                           fixed_effects = fixed_nested_effects,
+                           random_effects = random_nested_effects,
+                           power_crit = 0.8,
+                           n_start = 30,
+                           n_increment = 5,
+                           n_sims = 200,
+                           parallel_plan = "sequential",
+)
 
 ## Workflow for linear model (no random effects)
 # --- 1. Design Definition ---
@@ -495,3 +497,18 @@ glmer_results <- power_sim(
 summary(glmer_results)
 plot_sim_model(glmer_results, type = "power_curve")
 plot_sim_model(glmer_results, type = "data") # "data" calls our intelligent spaghetti/jitter plot
+
+# Testing visualization with lme4-style formula
+
+plot_design <- define_design(id = "subject", between = list(group = c("A", "B")))
+plot_formula <- y ~ group + (1|subject)
+
+get_fixed_effects_structure(plot_formula, plot_design)
+
+formula_lm <- y ~ group
+fe <- list(Intercept = 1, groupB = 0.5)
+re_lmm <- list(subject = list(Intercept = 2), sd_resid = 1)
+re_lm <- list(sd_resid = 1)
+
+
+plot_sim_model()
