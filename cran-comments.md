@@ -3,23 +3,14 @@
 * win-builder (devel and release)
 
 ## R CMD check results
-0 errors | 0 warnings | 1 note
+0 errors | 0 warnings | 0 notes
 
-## Resubmission
-This is a resubmission. In this version, I have addressed the comments from the CRAN team:
+## Update
+This is an update to an existing package, in which several bugs (one of them critical) have been fixed and the vignette has been extended and improved.
 
-1. Description field:
-   I have removed the linebreaks from the description field in the DESCRIPTION file.
-
-2. References:
-   The package implements standard simulation workflows, using standard 'lme4' model specifications. As no novel statistical methods are introduced, no specific references were added to the description.
-
-3. Examples (\dontrun vs \donttest):
-   Since all examples that were previously wrapped in \dontrun{} are example simulations that take longer than 5 seconds to execute, I have replaced \dontrun{} with \donttest{} in all cases
-
-4. Not easily suppressable console messages:
-   I have refactored the utility functions (get_fixed_effects_structure, get_random_effects_structure) to return objects with an assigned S3 class. The console output is now handled exclusively via registered S3 print methods instead of direct cat() calls in the main functions.
-
-Note from check:
-* Possibly misspelled words in DESCRIPTION: GLMMs, LMMs.
-  These are standard acronyms for (Generalized) Linear Mixed Models in the context of statistics and are defined in the Description text.
+1. Vignette extension
+   Extended vignette to cover more use-cases and give better background information on function use
+2. Several bug fixes, including a critical bug fix of the handling of nested designs
+   
+## Reverse dependencies
+There are currently no reverse dependencies for this package.

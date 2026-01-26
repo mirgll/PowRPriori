@@ -236,16 +236,16 @@ plot_sim_model.PowRPriori <- function(object, type = "power_curve", design = NUL
       p <- ggplot2::ggplot(plot_spaghetti_data, ggplot2::aes(x = .data[[x_var]], y = .data[[y_var]]))
       if (!is.null(facet_var)) {
         p <- p + ggplot2::geom_line(ggplot2::aes(group = .data[[group_var]]), alpha = 0.4, color = "grey50") +
-          ggplot2::stat_summary(ggplot2::aes(group = 1), fun = mean, geom = "line", linewidth = 1.2, color = "black") +
           ggplot2::facet_wrap(rlang::syms(facet_var)) +
+          ggplot2::stat_summary(data = data, ggplot2::aes(group = 1), fun = mean, geom = "line", linewidth = 1.2, color = "black") +
           ggplot2::theme(legend.position = "none")
       } else if (!is.null(color_var)) {
         p <- p + ggplot2::geom_line(ggplot2::aes(group = .data[[group_var]], color = .data[[color_var]]), alpha = 0.6) +
-          ggplot2::stat_summary(ggplot2::aes(group = .data[[color_var]], color = .data[[color_var]]),
+          ggplot2::stat_summary(data = data, ggplot2::aes(group = .data[[color_var]], color = .data[[color_var]]),
                                 fun = mean, geom = "line", linewidth = 1.2)
       } else {
         p <- p + ggplot2::geom_line(ggplot2::aes(group = .data[[group_var]]), alpha = 0.4) +
-          ggplot2::stat_summary(ggplot2::aes(group = 1), fun = mean, geom = "line", linewidth = 1.2, color = "black")
+          ggplot2::stat_summary(data = data, ggplot2::aes(group = 1), fun = mean, geom = "line", linewidth = 1.2, color = "black")
       }
       p <- p + ggplot2::labs(title = paste("Spaghetti-Plot for Simulated Data"), x = x_var, y = y_var, color = color_var) +
         ggplot2::theme_minimal() + ggplot2::theme(legend.position = "bottom")

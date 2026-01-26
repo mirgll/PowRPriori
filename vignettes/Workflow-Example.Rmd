@@ -18,21 +18,32 @@ knitr::opts_chunk$set(
 
 ## Introduction
 
-Welcome to `PowRPriori`! A priori power analysis is a critical step in designing robust and efficient studies. This package is designed to make power analysis for complex linear models (LMs, LMMs, GLMs, and GLMMs) intuitive, user-friendly and accessible. It ensures robust estimations by using Monte-Carlo-style data simulation as a foundation for the power analysis. One of the main goals of the package is to provide a framework for a priori power analyses which does not necessitate a deep understanding of the underlying statistics or ins and outs of the model specifications. Ideally, you can focus on your research design and expected effect sizes with the package doing the rest for you without overly complicated function parameters.
+Welcome to `PowRPriori`! A priori power analysis is a critical step when designing robust and efficient studies. This package is designed to make power analysis for complex linear models (LMs, LMMs, GLMs, and GLMMs) intuitive, user-friendly and accessible. It ensures robust estimations by using Monte-Carlo-style data simulation as a foundation for the power analysis. One of the main goals of the package is to provide a framework for a priori power analyses which does not necessitate a deep understanding of the underlying statistics or ins and outs of the model specifications. Ideally, you can focus on your research design and expected effect sizes with the package doing the rest for you without overly complicated function parameters.
 
 Currently, `PowRPriori` offers the following functions:
+
 1. In its current state, `PowRPriori` can handle a fairly large amount of different designs. You can conduct power analyses for any standard linear, logistic, or poisson regression model (in the "classical" sense of the general linear model, without random effects). `PowRPriori` automatically handles the specified research design and model formula you plug into it, and there are very little technical limits to what you can specify.
+
 2. For (generalized) mixed effects models, `PowRPriori` is currently equipped to handle designs that fulfill the constraint that there are no more than two levels for nested designs (e.g. pupils nested in classes works, whereas pupils nested in classes nested in schools does not out of the gate). Otherwise, `PowRPriori` can handle designs with crossed random intercept (e.g. `(1|subject) + (1|item)`), or designs with one or more random slopes (e.g. `(intervention|subject)` or `(intervention + time|subject)`), offering a high degree of flexibility.
+
 3. The possibility to directly specify the random effects or, if the model only includes random intercepts, to also define them via Intraclass-Coefficients.
+
 4. `PowRPriori` offers user-friendly helper functions that aim to streamline the process of conducting the power analysis and taking the user somewhat away from the statistical details. It does so by providing functions that generate directly usable code snippets to correctly define the fixed and random effects parts of the model. Moreover, it also provides the possibility to generate the correct regression weights from the expected mean outcomes of a study.
+
 5. Users can conduct power analyses for different model families. Supported at the moment are gaussian, binomial (i.e. logistic) and poisson regression models.
+
 6. A detailed summary of the power analysis, providing an overview of the simulation as well as parameter recovery details displaying how well the simulated data aligns with the model specifications.
+
 7. Detailed visualization options, such as displaying the power curve after the simulation or plotting sample data to allow for inspecting the plausibility of the generated data.  
 
 This vignette will guide you through the entire workflow of a power analysis using a realistic example. It will cover:
+
 1.  Defining a study design.
+
 2.  Specifying expected effects.
+
 3.  Running the power simulation.
+
 4.  Interpreting and visualizing the results.
 
 Finally, it will show brief examples of how to adapt the workflow for other possible study designs.
@@ -133,7 +144,8 @@ my_fixed_effects <- fixed_effects_from_average_outcome(
   outcome = expected_means
 )
 
-#Note the naming of the coefficients is exactly as `lme4` expects them to be. Do not change these names!
+# Note the naming of the coefficients is exactly as `lme4` expects them to be. 
+# Do not change these names!
 print(my_fixed_effects)
 ```
 
@@ -229,7 +241,7 @@ The `summary()` function provides a detailed overview of the simulation, includi
 ```{r summary}
 summary(power_results)
 ```
-From this table, you can see that you'll need approximately **N=140 subjects** to reach your desired 80% power at an alpha level of 5%. Also, you can see that your model had some singular fits, especially at smaller sample sizes. Sometimes, singular fits can happen by chance. If they happen frequently, it can be an indicator that your model specifications might be problematic. Right now, I won't delve further into this topic, but investigating your random effects parameters is useful in such cases. 
+From this table, you can see that you'll need approximately **N=120 subjects** to reach your desired 80% power at an alpha level of 5%. Also, you can see that your model had some singular fits, especially at smaller sample sizes. Sometimes, singular fits can happen by chance. If they happen frequently, it can be an indicator that your model specifications might be problematic. Right now, I won't delve further into this topic, but investigating your random effects parameters is useful in such cases. 
 
 #### The Power Curve
 
@@ -280,7 +292,12 @@ n_Participants = 30
 ```
 
 ```{r plot data by lme, fig.width=6, fig.height=4, fig.dpi=600, out.width="600px", out.height="400px"}
-plot_sim_model(plot_formula, type="data", design = plot_design, fixed_effects = plot_fixed_effects, random_effects = plot_random_effects, n = n_Participants)
+plot_sim_model(plot_formula, 
+               type="data", 
+               design = plot_design, 
+               fixed_effects = plot_fixed_effects, 
+               random_effects = plot_random_effects, 
+               n = n_Participants)
 ```
 
 

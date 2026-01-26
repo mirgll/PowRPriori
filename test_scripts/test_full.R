@@ -114,7 +114,9 @@ cat("\nErgebnis der Power-Analyse:\n")
 print(power_results)
 
 sim.formula.test2 <- y~time + (time|subject)
+
 des.test2 <- define_design(id = "subject", within = list(time = c("pre", "post")))
+
 get_fixed_effects_structure(formula = sim.formula.test2, design = des.test2)
 fe.test2 <- list(
   `(Intercept)`              = 10,
@@ -131,4 +133,5 @@ re.test2 <- list(
 )
 
 plot_sim_model(sim.formula.test2, des.test2, fixed_effects = fe.test2, random_effects = re.test2, n = 50)
+
 
