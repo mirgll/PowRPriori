@@ -1,6 +1,6 @@
 Package: PowRPriori
 Title: Power Analysis via Data Simulation for (Generalized) Linear Mixed Effects Models
-Version: 0.2.0
+Version: 0.1.2
 Authors@R: 
     person("Markus", "Grill", email = "markus.grill@uni-wh.de", role = c("aut", "cre"))
 Description: Conduct a priori power analyses via Monte-Carlo style data simulation for linear and generalized linear mixed-effects models (LMMs/GLMMs). Provides a user-friendly workflow with helper functions to easily define fixed and random effects as well as diagnostic functions to evaluate the adequacy of the results of the power analysis.

@@ -3,10 +3,12 @@ title: "Power Analysis with PowRPriori: A Complete Workflow with Different Examp
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Complete Workflow with PowRPriori}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
 bibliography: references.bib
 link-citations: yes
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r setup, include = FALSE}
@@ -48,19 +50,23 @@ This vignette will guide you through the entire workflow of a power analysis usi
 
 Finally, it will show brief examples of how to adapt the workflow for other possible study designs.
 
-First, the package needs to be loaded. `tidyr` is loaded as well to create tables.
+First, the package needs to be installed and loaded. `tidyr` is loaded as well to create tables.
+```{r eval=FALSE}
+install.packages("PowRPriori")
+```
+
 ```{r load-packages, message=FALSE}
 library(PowRPriori)
 library(tidyr)
 ```
 
-## A Complete Example: A 2x2 Mixed Design
+## Complete Example of the Workflow: A 2x2 Mixed Design
 
 Let's imagine a common research scenario: You want to test a new cognitive training program. 
 
 **Research Question:** Does your new training program (`group`: Treatment vs. Control) improve memory scores from a pre-test to a post-test (`time`) more than in a control group?
 
-This is a classic 2x2 mixed design, with `group` as a between-subject factor and `time` as a within-subject factor. Since `time` is a within-subject factor, it can be seen as "nested" within each individual measured, making your research design well suited to be analyzed using a linear mixed effects model. The important questions for your power analysis are, what does your study design look like, what are the effect sizes you can realistically expect (based on the existing literature) and what are reasonable estimates for the random effects structure?
+This is a classic 2x2 mixed design, with `group` as a between-subject factor and `time` as a within-subject factor. Since `time` is a within-subject factor, it can be seen as "nested" within each individual measured, making your research design well suited to be analyzed using a linear mixed effects model. The important questions for your power analysis are, what does your study design look like, what are the effect sizes you can realistically expect (based on the existing literature and / or data) and what are reasonable estimates for the random effects structure?
 
 ### Step 1: Defining the Study Design
 
@@ -230,18 +236,23 @@ After the simulation is complete, you can inspect the results object in differen
 ```{r load-results, include=FALSE, eval=TRUE}
 # This hidden code block loads the pre-computed results
 power_results <- readRDS(
-  system.file("extdata", "power_results_vignette.rds", package = "PowRPriori")
+  system.file("extdata", "power_results_workflow.rds", package = "PowRPriori")
 )
 ```
 
 #### The Summary Table
 
-The `summary()` function provides a detailed overview of the simulation, including the power table and a check of the parameter recovery (i.e. a check how well the simulation was able to simulate the parameters you specified, with bias values representing deviations from your specified parameters). The parameter recovery largely serves to confirm that the simulation ran as expected and that the generated data is plausible.
+The `summary()` function provides a detailed overview of the simulation, including the power table and a check of the parameter recovery (i.e. a check how well the simulation was able to simulate the parameters you specified, with bias values representing deviations from your specified parameters). The parameter recovery largely serves to confirm that the simulation ran as expected and that the generated data is plausible. 
+
+In the parameter recovery tables, you will find columns specifying the `True Value` column, i.e. the parameter estimates you plugged into the simulation, the `Avg_Estimated` column, i.e. the average estimates of the `n_sims` models that were simulated in the last simulation run, and the `Bias` column, which represents the deviations of the estimated parameters from the "true" parameter values you used for the simulation.
+
+Small biases indicate that the simulation could accurately simulate the data with your specified parameters. In these cases, the power analysis can be considered robust for your specified effect sized. Large biases, on the other hand, indicate that the simulation had trouble to accurately simulate the data with your specified parameters. This hampers the robustness of your power analysis, since you technically conducted your power analysis for a model with different effect sizes than the one you specified. Additionally, your model could potentially be implausible (at least with the specific parameters you chose), so it is definitely encouraged to reevaluate your parameters in such cases.
 
 ```{r summary}
 summary(power_results)
 ```
-From this table, you can see that you'll need approximately **N=120 subjects** to reach your desired 80% power at an alpha level of 5%. Also, you can see that your model had some singular fits, especially at smaller sample sizes. Sometimes, singular fits can happen by chance. If they happen frequently, it can be an indicator that your model specifications might be problematic. Right now, I won't delve further into this topic, but investigating your random effects parameters is useful in such cases. 
+
+From this table, you can see that you'll need approximately **N=120 subjects** (in the `subject` column in the first table after the Formula) to reach your desired 80% power at an alpha level of 5%. Also, you can see that your model had some singular fits, especially at smaller sample sizes. Sometimes, singular fits can happen by chance. If they happen frequently, it can be an indicator that your model specifications might be problematic. Right now, I won't delve further into this topic, but investigating your random effects parameters is useful in such cases. 
 
 #### The Power Curve
 
@@ -287,7 +298,8 @@ plot_random_effects <- list(
   ),
   sd_resid = 12
 )
-# For this simulation, you might decide that you want to see what the data looks like for 30 Participants
+# For this simulation, you might decide that you want to see what the 
+# data looks like for 30 Participants
 n_Participants = 30
 ```
 
@@ -299,7 +311,6 @@ plot_sim_model(plot_formula,
                random_effects = plot_random_effects, 
                n = n_Participants)
 ```
-
 
 
 ## Other Use Cases
@@ -318,7 +329,8 @@ cluster_design <- define_design(
   id = "pupil",
   nesting_vars = list(class = 1:20), # 20 classes
   between = list(
-    class = list(intervention = c("yes", "no")) # Intervention at class level, with "pupil" nested in classes
+    # Intervention at class level, with "pupil" nested in classes
+    class = list(intervention = c("yes", "no")) 
   ),
   within = list(
     time = c("pre", "post")
@@ -357,14 +369,16 @@ glmm_fixed_effects <- fixed_effects_from_average_outcome(
 #Get random effects
 get_random_effects_structure(formula = glmm_formula, design = glmm_design, family = "binomial")
 
-# Note: For binomial (and poisson) models, sd_resid is not specified in random_effects. You can also use generate_random_effects_structure as detailed before.
+# Note: For binomial (and poisson) models, sd_resid is not specified in random_effects. 
+#       You can also use generate_random_effects_structure as detailed before.
 glmm_random_effects <- list(
   subject = list(
     `(Intercept)` = 2
   )
 )
 
-# The power_sim() call would then include `family = "binomial"` (or `family = "poisson"` if you simulated count data), everything else being the same
+# The power_sim() call would then include `family = "binomial"` (or `family = "poisson"` 
+# if you simulated count data), everything else being the same
 # as in the workflow example above.
 ```
 
