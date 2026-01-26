@@ -8,7 +8,7 @@ This a smaller update, improving the vignette and fixing a critical bug in the f
 * Fixed incorrect handling of certain nested designs in `get_fixed_effects_structrue` and `get_random_effects_structure` so that the functions now consistently produce the correct code snippets
 
 ### Miscellaneous smaller bugs
-* Fixed plotting of sample data where the incorrect regression lines were drawn when using `plot_sim_model` when `type = "data"`
+* Fixed plotting of sample data where the incorrect regression lines were drawn when using `plot_sim_model` with `type = "data"`
 * Corrected the possible values of the `type` parameter in the `plot_sim_model` function when using it with an `lme4`-style formula object
 * Fixed incorrect console output when the data simulation with `power_sim` reached or exceeded `max_simulation_steps`
 
