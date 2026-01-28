@@ -16,6 +16,8 @@ This a smaller update, improving the vignette and fixing a critical bug in the f
 ## General improvements
 
 * Vastly extended the vignette to provide more background information on the functions, include more additional use-cases and further improve the overall readability
+* Improved the output of `power_sim` to include more information when simulating a nested design
+* Improved the output of `power_sim` to incorporate the percentage of model fits with issues in relation to the total number of models fit
 
 # PowRPriori 0.1.1
 
