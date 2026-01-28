@@ -36,7 +36,7 @@ NULL
 #' and standard deviation (`test_score = list(mean = 10, sd = 5)`). Additionally, variables can also be defined as numerical vectors
 #' (`predictor = 1:4`).
 #'
-#' The `between` argument is particularly flexible. For simple designs, you can
+#' The `between` argument offers a degree of flexibility. For simple designs, you can
 #' provide a "flat" list of factors. For complex designs like cluster-randomized
 #' trials, you can provide a hierarchical list to specify the level of
 #' assignment (see examples). For a full tutorial, see the package vignette:

@@ -25,17 +25,68 @@ design.n_is_total <- define_design("pupil", between = list(group = c("interventi
 tmp <- PowRPriori:::.create_design_matrix(design.n_is_total, 30, n_is_total = F)
 
 
-## Nested Designs
-design.nested <- define_design("pupil", between = list(group = c("intervention", "control"),
-                                                       iq = list(mean = 100, sd = 15)),
-                                        within = list(rep_meas = c("pre", "post")),
-                                        nesting_vars = list(class = factor(1:10)))
+## Nested Designs Full Test
 design.nested <- define_design("pupil", between = list(
                                                     class = list(group = c("intervention", "control")),
                                                     pupil = list(iq = list(mean = 100, sd = 15))),
-                               within = list(rep_meas = c("pre", "post")),
-                               nesting_vars = list(class = factor(1:10)))
-tmp <- PowRPriori:::.create_design_matrix(design.nested, 5, n_is_total = T)
+                               within = list(rep_meas = c("pre", "post"), item = factor(1:15)),
+                               nesting_vars = list(class = factor(1:5)))
+nested.formula <- resp ~ group*rep_meas + iq + (1 | class/pupil) + (1 | item)
+
+testSingular <- 0
+for(run in 1:500) {
+  tmp <- PowRPriori:::.create_design_matrix(design.nested, 5, n_is_total = F)
+  tmp.outcome <- PowRPriori:::.simulate_outcome(tmp, nested.formula,nested.fixed_effects, sds_random = nested.random_effects)
+  tmp.model <- lmerTest::lmer(nested.formula, data = tmp.outcome)
+  if(lme4::isSingular(tmp.model)) testSingular <- testSingular + 1
+}
+testSingular
+
+
+get_fixed_effects_structure(nested.formula, design.nested)
+
+nested.fixed_effects <- list(
+  `(Intercept)` = 30,
+  groupcontrol = 4,
+  `rep_measpost` = 4,
+  iq = 8,
+  `groupcontrol:rep_measpost` = 18
+)
+
+get_random_effects_structure(nested.formula,design.nested)
+
+nested.random_effects <- list(
+  item = list(
+    `(Intercept)` = 3
+  ),
+  class = list(
+    `(Intercept)` = 3
+  ),
+  `pupil:class` = list(
+    `(Intercept)` = 3
+  ),
+  sd_resid = 10
+)
+
+tmp.outcome <- PowRPriori:::.simulate_outcome(tmp, nested.formula,nested.fixed_effects, sds_random = nested.random_effects)
+
+tmp.model <- lmerTest::lmer(nested.formula, data = tmp.outcome)
+summary(tmp.model)
+
+nested.power_results <- power_sim(formula = nested.formula,
+                           design = design.nested,
+                           test_parameter = c("groupcontrol:rep_measpost"),
+                           fixed_effects = nested.fixed_effects,
+                           random_effects = nested.random_effects,
+                           power_crit = 0.85,
+                           n_start = 5,
+                           n_is_total = F,
+                           n_increment = 5,
+                           n_sims = 500,
+                           parallel_plan = "sequential",
+                           max_simulation_steps = 10,
+                           n_issue_stop_prop = 0.99
+)
 
 ## One Sample Design
 design.onesample <- define_design("subject")

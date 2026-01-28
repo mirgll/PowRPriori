@@ -110,10 +110,40 @@ power_sim <- function(
     n_sims = 2000,
     alpha = 0.05,
     parallel_plan = "multisession") {
+
 # 1. Error checks
   formula <- as.formula(formula)
+
   all_needed_vars <- all.vars(formula)[-1]
-  all_defined_vars <- c(design$id, names(design$between), names(design$within))
+  all_defined_vars <- list()
+  all_defined_vars[[design$id]] <- NA
+
+  if(!is.null(design$nesting_vars)) {
+    all_defined_vars <- c(all_defined_vars, design$nesting_vars)
+  }
+
+  if(!is.null(design$within)) {
+    all_defined_vars <- c(all_defined_vars, design$within)
+  }
+
+  if(!is.null(design$between)) {
+    for(name in names(design$between)) {
+      element <- design$between[[name]]
+      is_nested_level <- is.list(element) && !is.null(names(element)) && !all(c("mean", "sd") %in% names(element))
+
+      if(is_nested_level) {
+        all_defined_vars <- c(all_defined_vars, element)
+
+        if(!name %in% names(all_defined_vars)) {
+          all_defined_vars[[name]] <- NA
+        }
+      } else {
+        all_defined_vars[[name]] <- element
+      }
+    }
+  }
+
+  all_defined_vars <- names(all_defined_vars)
 
   if (n_issue_stop_prop < 0 || n_issue_stop_prop > 1) {
     stop("'n_issue_stop_prop' needs to be a proportion, i.e. have a value between 0 and 1.", call. = FALSE)
@@ -259,13 +289,19 @@ power_sim <- function(
   current_n <- n_start
   last_power <- 0
   sim_step <- 0
+  nesting_var <- names(design$nesting_vars)[1]
+  n_nesting_var <- length(design$nesting_vars[[1]])
 
   future::plan(parallel_plan)
   on.exit(future::plan("sequential"), add = TRUE)
 
   # Main loop for simulation and power analysis
   while (last_power < power_crit && sim_step < max_simulation_steps) {
-    message(paste("\n--- Starting simulation for", n_var, "=", current_n, "with", n_sims, "simulations ---"))
+    if(length(nesting_var) != 0) {
+      message(paste("\n--- Starting simulation for", n_var, "=", current_n, "and", nesting_var, "=", n_nesting_var, "with", n_sims, "simulations ---"))
+    } else {
+      message(paste("\n--- Starting simulation for", n_var, "=", current_n, "with", n_sims, "simulations ---"))
+    }
 
     sim_results <- foreach(sim = 1:n_sims, .combine = "c", .multicombine = TRUE, .options.future = list(seed = TRUE)) %dofuture% {
         sim_data <- .create_design_matrix(design, current_n, n_is_total) %>%
@@ -409,6 +445,7 @@ power_sim <- function(
 
     n_model_issues <- n_singular + n_convergence + n_identifiable
     has_critical_model_issues <- n_model_issues > (n_sims * n_issue_stop_prop)
+    model_issues_percent <- round((n_model_issues / n_sims) * 100)
 
     results_list[[as.character(current_n)]] <- data.frame(
       n = current_n,
@@ -438,8 +475,8 @@ power_sim <- function(
       if (n_convergence > 0) issue_details <- c(issue_details, paste0(" Non-Convergence: ", n_convergence))
       if (n_identifiable > 0) issue_details <- c(issue_details, paste0(" Nearly Unidentifiable Fits: ", n_identifiable))
 
-      message(paste("Warning: Some model fits had issues during simulation:",
-                    paste(issue_details, collapse = ","), ".\nSimulation results might be unreliable if a large proportion of model fits had issues."))
+      message(paste("Warning: Of", n_sims , "models calculated,", model_issues_percent , "% of fits had issues during simulation:",
+                    paste(issue_details, collapse = ","), ".\nSimulation results are probably unreliable if a large proportion of model fits had issues."))
       if (has_critical_model_issues) {
         message(paste0("\n--- Simulation canceled ---\n",
                        "At N = ", current_n, ", ", round(n_model_issues / n_sims * 100), "% of models ",

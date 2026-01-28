@@ -11,6 +11,7 @@ This a smaller update, improving the vignette and fixing a critical bug in the f
 * Fixed plotting of sample data where the incorrect regression lines were drawn when using `plot_sim_model` with `type = "data"`
 * Corrected the possible values of the `type` parameter in the `plot_sim_model` function when using it with an `lme4`-style formula object
 * Fixed incorrect console output when the data simulation with `power_sim` reached or exceeded `max_simulation_steps`
+* Fixed a bug where the simulation stop condition did not work correctly in some cases where more than the defined `n_issue_stop_prop` proportion of models had fitting issues
 
 ## General improvements
 

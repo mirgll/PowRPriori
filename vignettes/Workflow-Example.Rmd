@@ -232,6 +232,8 @@ power_results <- power_sim(
 )
 ```
 
+A note: Keep the `n_is_total` parameter in mind. It controls whether your initial sample size specified with `n_start` is interpreted as the overall sample size across all potential between-subject variables or as the sample size in each cell of the between-subject variables.
+
 ### Step 6: Interpret and Visualize the Results
 
 After the simulation is complete, you can inspect the results object in different ways.
