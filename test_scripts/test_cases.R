@@ -268,14 +268,16 @@ random_effects <- list(
 
 power_results <- power_sim(formula = test.formula,
                            design = test.design.get_fx,
-                           test_parameter = c("group2Treatment:timePost"),
+                           test_parameter = c("timePost", "group2Treatment:timePost"),
                            fixed_effects = fixed_effects,
                            random_effects = random_effects,
                            power_crit = 0.8,
-                           n_start = 50,
+                           n_start = 150,
                            n_increment = 5,
                            n_sims = 200,
-                           parallel_plan = "sequential", max_simulation_steps = 4
+                           parallel_plan = "sequential",
+                           max_simulation_steps = 4,
+                           adjust_p_value = "BH"
                            )
 
 PowRPriori::plot_sim_model(power_results)

@@ -28,6 +28,9 @@
 #' @param overall_variance The total variance of the outcome, required when `icc_specs` is used.
 #' @param family The model family: `"gaussian"` (for LMMs), `"binomial"` (for logistic GLMMs),
 #'   or `"poisson"` (for poisson GLMMs).
+#' @param adjust_p_value Controls how p-values in the data simulation are adjusted when power is calculated for more than
+#'  one parameter (as specified in `test_paramter`). Possible values are the same as in the function `p.adjust`. Defaults to "BH", which is the
+#'  Benjamini-Hochberg correction. Setting this to `FALSE` disables p-value adjustment, although this is discouraged.
 #' @param power_crit The desired statistical power level (e.g., 0.80 for 80%).
 #' @param n_start The starting sample size for the simulation.
 #' @param n_increment The step size for increasing the sample size in each iteration.
@@ -101,6 +104,7 @@ power_sim <- function(
     icc_specs = NULL,
     overall_variance = NULL,
     family = "gaussian",
+    adjust_p_value = "BH",
     power_crit = 0.80,
     n_start,
     n_increment,
@@ -229,6 +233,7 @@ power_sim <- function(
   if(is.null(random_effects) & is.null(icc_specs) & has_random_effects){
     stop("The supplied formula contains random effects.\nYou need to specify either a random effects structure or ICCs for your design.", call. = FALSE)
   }
+
 # 2. Simulation
   if (has_random_effects) {
     if (!is.null(random_effects)) {
@@ -297,7 +302,8 @@ power_sim <- function(
 
   # Main loop for simulation and power analysis
   while (last_power < power_crit && sim_step < max_simulation_steps) {
-    if(length(nesting_var) != 0) {
+    if(length(nesting_var) != 0
+       ) {
       message(paste("\n--- Starting simulation for", n_var, "=", current_n, "and", nesting_var, "=", n_nesting_var, "with", n_sims, "simulations ---"))
     } else {
       message(paste("\n--- Starting simulation for", n_var, "=", current_n, "with", n_sims, "simulations ---"))
@@ -313,6 +319,8 @@ power_sim <- function(
       error_msg <- NA_character_
       has_identifiable_warning <- FALSE
       has_other_warning <- FALSE
+
+
 
       suppressMessages(suppressWarnings(
         tryCatch(
@@ -424,6 +432,15 @@ power_sim <- function(
       ), call. = FALSE)
     }
 
+    p_values_ColNames <- names(diagnostics_df %>% dplyr::select(starts_with("p_")))
+
+    if(!isFALSE(adjust_p_value) > 0 & length(p_values_ColNames) > 1) {
+      diagnostics_df[p_values_ColNames] <- t(apply(diagnostics_df[p_values_ColNames],
+                                                   MARGIN = 1,
+                                                   FUN = p.adjust,
+                                                   method = adjust_p_value))
+    }
+
     power_values <- colMeans(diagnostics_df %>% dplyr::select(starts_with("p_")) < alpha, na.rm = TRUE)
     names(power_values) <- sub("^p_", "power_", names(power_values))
 
@@ -502,7 +519,11 @@ power_sim <- function(
   } else if (sim_step == max_simulation_steps) {
     message(paste0("\nMaximum number of simulation steps reached (", max_simulation_steps, "). Simulation stopped due to risk of infinite loop.\nYour model potentially needs adaptation, or, if you want to continue with the current parameters, try increasing the `n_start` parameter."))
   } else {
+
     message(paste0("\nPower of at least ", power_crit, " achieved at N = ", final_results_df[[n_var]][nrow(final_results_df)], " (Power: ", round(last_power, 2), ")."))
+    if(!isFALSE(adjust_p_value) > 0 & length(p_values_ColNames) > 1) {
+      message("Note: Statistical power was calculated for more than one parameter. Therefore,  p-values were adjusted for multiple comparisons.")
+    }
   }
 
   names(coefficients_df) <- gsub("[()]", "", names(coefficients_df))

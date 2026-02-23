@@ -167,21 +167,35 @@ plot_sim_model.PowRPriori <- function(object, type = "power_curve", design = NUL
 #'
 #' @return A `ggplot` object.
 .plot_data <- function(data, design, formula, family, x_var, group_var,
-                                   color_var, facet_var, n_data_points) {
+                       color_var, facet_var, n_data_points) {
   y_var <- all.vars(formula)[1]
   id_var <- design$id
   between_vars <- names(design$between)
   within_vars <- names(design$within)
 
-  if(!is.null(within_vars)) {
-    if (is.null(group_var)) {
-      group_var <- id_var
-    }
+  if (is.null(group_var)) {
+    group_var <- id_var
+  }
+
+  is_categorical <- function(v) {
+    is.factor(data[[v]]) || is.character(data[[v]])
+  }
+
+  if (length(within_vars) > 0) {
     if (is.null(x_var)) {
-      x_var <- within_vars[1]
+      cat_within <- within_vars[sapply(within_vars, is_categorical)]
+      if (length(cat_within) > 0) {
+        x_var <- cat_within[1]
+      } else {
+        x_var <- within_vars[1]
+      }
     }
-    if (is.null(facet_var) && is.null(color_var)) {
-      facet_var <- between_vars[1]
+
+    if (is.null(facet_var) && is.null(color_var) && length(between_vars) > 0) {
+      cat_between <- between_vars[sapply(between_vars, is_categorical)]
+      if (length(cat_between) > 0) {
+        facet_var <- cat_between[1]
+      }
     }
 
     vars_to_average <- setdiff(within_vars, c(group_var, x_var, color_var, facet_var))
@@ -192,6 +206,7 @@ plot_sim_model.PowRPriori <- function(object, type = "power_curve", design = NUL
         dplyr::group_by(dplyr::across(dplyr::all_of(unlist(purrr::compact(list(group_var, x_var, color_var, facet_var)))))) %>%
         dplyr::summarise(!!y_var := mean(.data[[y_var]]), .groups = "drop")
     }
+
     y_var <- all.vars(formula)[1]
 
     if(family == "binomial") {
@@ -251,6 +266,7 @@ plot_sim_model.PowRPriori <- function(object, type = "power_curve", design = NUL
         ggplot2::theme_minimal() + ggplot2::theme(legend.position = "bottom")
     }
   } else {
+    # Cross-sectional plot (keine within-Variablen)
     if (is.null(x_var)) {
       x_var <- names(design$between)[1]
     }

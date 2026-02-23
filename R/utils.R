@@ -284,7 +284,7 @@ get_random_effects_structure <- function(formula, design, family = "gaussian") {
 
   if(is.null(design$within)) design$within <- list(dummy_within = c(1,2))
 
-  dummy_data <- .create_design_matrix(design, current_n = 1, n_is_total = F)
+  dummy_data <- .create_design_matrix(design, current_n = 2, n_is_total = F)
   dummy_data[[all.vars(formula)[1]]] <- 1
 
 

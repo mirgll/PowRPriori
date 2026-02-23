@@ -13,6 +13,7 @@ power_sim(
   icc_specs = NULL,
   overall_variance = NULL,
   family = "gaussian",
+  adjust_p_value = "BH",
   power_crit = 0.8,
   n_start,
   n_increment,
@@ -48,6 +49,10 @@ defining simple random-intercept models. Must be used with \code{overall_varianc
 
 \item{family}{The model family: \code{"gaussian"} (for LMMs), \code{"binomial"} (for logistic GLMMs),
 or \code{"poisson"} (for poisson GLMMs).}
+
+\item{adjust_p_value}{Controls how p-values in the data simulation are adjusted when power is calculated for more than
+one parameter (as specified in \code{test_paramter}). Possible values are the same as in the function \code{p.adjust}. Defaults to "BH", which is the
+Benjamini-Hochberg correction. Setting this to \code{FALSE} disables p-value adjustment, although this is discouraged.}
 
 \item{power_crit}{The desired statistical power level (e.g., 0.80 for 80\%).}
 

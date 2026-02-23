@@ -24,6 +24,8 @@
 
   within_factors   <- purrr::keep(within_vars, ~!is.list(.))
   nesting_factors  <- purrr::keep(nesting_vars, ~!is.list(.))
+  within_continuous <- purrr::keep(design$within, is.list)
+
 
   is_hierarchical <- is.list(design$between[[1]]) &&
     !all(c("mean", "sd") %in% names(design$between[[1]]))
@@ -118,6 +120,12 @@
     design_df <- tidyr::crossing(subjects_df, !!!within_factors)
   } else {
     design_df <- subjects_df
+  }
+
+
+  for (cont_var_name in names(within_continuous)) {
+    params <- within_continuous[[cont_var_name]]
+    design_df[[cont_var_name]] <- stats::rnorm(nrow(design_df), mean = params$mean, sd = params$sd)
   }
 
   return(design_df)
