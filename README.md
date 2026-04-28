@@ -31,7 +31,7 @@ library(tidyr)
 
 # 1. Define the study design
 my_design <- define_design(
-  id = "subject",
+  sample_size = list(subject = 30),
   between = list(group = c("Control", "Treatment")),
   within = list(time = c("pre", "post"))
 )
@@ -53,7 +53,6 @@ power_results <- power_sim(
   fixed_effects = my_fixed_effects,
   random_effects = my_random_effects,
   test_parameter = "groupTreatment:timepost",
-  n_start = 30,
   n_increment = 10,
   n_sims = 100 # Low number for a quick example
 )
