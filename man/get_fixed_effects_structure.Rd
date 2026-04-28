@@ -25,7 +25,7 @@ to the console, where the user only needs to fill in placeholders (\code{...}) f
 }
 \examples{
 design <- define_design(
-  id = "subject",
+  sample_size = list(subject = 20),
   between = list(group = c("Control", "Treatment")),
   within = list(time = c("pre", "post"))
 )

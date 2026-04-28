@@ -1,47 +1,30 @@
 #### Test define_design
 ## Pure Within Subject
-design.within <- define_design("subject", within = list(time = c("Pre","Post"), task = c("easy", "medium", "hard")))
+design.within <- define_design(sample_size = list(subject = 20), within = list(time = c("Pre","Post"), task = c("easy", "medium", "hard")))
 
 ## Pure Between Subject
-design.between <- define_design("school", between = list(type = c("haupt", "real", "gymn")))
+design.between <- define_design(sample_size = list(school = 20), between = list(type = c("haupt", "real", "gymn")))
 
 ## Between and Within Subject
-design.mixed <- define_design("subject", between = list(group = c("Treatment", "Placebo", "Control")),
+design.mixed <- define_design(sample_size = list(subject = 20), between = list(group = c("Treatment", "Placebo", "Control")),
                               within = list(time = c("Pre","Post"), task = c("easy", "medium", "hard")))
 
 ## Numerical Factors
-design.numerical <- define_design("subject", between = list(group = c("Treatment", "Placebo", "Control")),
+design.numerical <- define_design(sample_size = list(subject = 20), between = list(group = c("Treatment", "Placebo", "Control")),
                                   within = list(time = 1:3))
 
 ## Continuous predictor
-design.continuous <- define_design("subject", between = list(group = c("Treatment", "Placebo", "Control"),
+design.continuous <- define_design(sample_size = list(subject = 20), between = list(group = c("Treatment", "Placebo", "Control"),
                                                              iq = list(mean = 100, sd = 15)),
                                               within = list(time = c("pre", "post")))
-tmp <- PowRPriori:::.create_design_matrix(design.continuous, 30)
-## N_is_total test
-design.n_is_total <- define_design("pupil", between = list(group = c("intervention", "control"),
-                                                       iq = list(mean = 100, sd = 15)),
-                               within = list(rep_meas = c("pre", "post")))
-tmp <- PowRPriori:::.create_design_matrix(design.n_is_total, 30, n_is_total = F)
-
+tmp <- PowRPriori:::.create_design_matrix(design.continuous, outcome ~ group*time + iq + (1|subject))
 
 ## Nested Designs Full Test
-design.nested <- define_design("pupil", between = list(
+design.nested <- define_design(sample_size = list(class = 5, pupil = 20), between = list(
                                                     class = list(group = c("intervention", "control")),
                                                     pupil = list(iq = list(mean = 100, sd = 15))),
-                               within = list(rep_meas = c("pre", "post"), item = factor(1:15)),
-                               nesting_vars = list(class = factor(1:5)))
+                               within = list(pupil = list(rep_meas = c("pre", "post"), item = factor(1:15))))
 nested.formula <- resp ~ group*rep_meas + iq + (1 | class/pupil) + (1 | item)
-
-testSingular <- 0
-for(run in 1:500) {
-  tmp <- PowRPriori:::.create_design_matrix(design.nested, 5, n_is_total = F)
-  tmp.outcome <- PowRPriori:::.simulate_outcome(tmp, nested.formula,nested.fixed_effects, sds_random = nested.random_effects)
-  tmp.model <- lmerTest::lmer(nested.formula, data = tmp.outcome)
-  if(lme4::isSingular(tmp.model)) testSingular <- testSingular + 1
-}
-testSingular
-
 
 get_fixed_effects_structure(nested.formula, design.nested)
 
@@ -73,14 +56,20 @@ tmp.outcome <- PowRPriori:::.simulate_outcome(tmp, nested.formula,nested.fixed_e
 tmp.model <- lmerTest::lmer(nested.formula, data = tmp.outcome)
 summary(tmp.model)
 
+design.nested <- define_design(sample_size = list(class = 5, pupil = 20), between = list(
+  class = list(group = c("intervention", "control")),
+  pupil = list(iq = list(mean = 100, sd = 15))),
+  within = list(pupil = list(rep_meas = c("pre", "post"), item = factor(1:15))))
+nested.formula <- resp ~ group*rep_meas + iq + (1 | class/pupil) + (1 | item)
+
 nested.power_results <- power_sim(formula = nested.formula,
                            design = design.nested,
                            test_parameter = c("groupcontrol:rep_measpost"),
                            fixed_effects = nested.fixed_effects,
                            random_effects = nested.random_effects,
                            power_crit = 0.85,
-                           n_start = 5,
-                           n_is_total = F,
+                           along = "class",
+                           center = TRUE,
                            n_increment = 5,
                            n_sims = 500,
                            parallel_plan = "sequential",
@@ -89,13 +78,13 @@ nested.power_results <- power_sim(formula = nested.formula,
 )
 
 ## One Sample Design
-design.onesample <- define_design("subject")
-tmp <- PowRPriori:::.create_design_matrix(design.onesample, 30, n_is_total = F)
+design.onesample <- define_design(sample_size = list(subject = 30))
+tmp <- PowRPriori:::.create_design_matrix(design.onesample)
 
 
 #### Test get_effects and get_random_effects_structure
 ## Overall design
-test.design.get_fx <- define_design("subject", between = list(group = c("Control", "Placebo", "Treatment"), group2 = c("Control", "Treament")),
+test.design.get_fx <- define_design(sample_size = list(subject = 30), between = list(group = c("Control", "Placebo", "Treatment"), group2 = c("Control", "Treament")),
                                     within = list(time = c("Pre","Post"), task = c("easy", "medium", "hard"), task2 = 1:3))
 ## Single random intercept
 test.formula = y ~ group * time + (1 | subject)
@@ -140,6 +129,12 @@ test.formula = y ~ -1 + group2 * time + (1 | subject) + (1 | task)
 get_fixed_effects_structure(formula = test.formula, design = test.design.get_fx)
 get_random_effects_structure(formula = test.formula, design = test.design.get_fx)
 
+## Uncorrelated random effects
+test.formula = y ~ 1 + group2 * task2 + (task2 || subject)
+
+get_fixed_effects_structure(formula = test.formula, design = test.design.get_fx)
+get_random_effects_structure(formula = test.formula, design = test.design.get_fx)
+
 #### Test effects_from_means
 cat("--- Starting tests for fixed_effects_from_average_outcome ---\n\n")
 
@@ -160,7 +155,7 @@ cat("\n--------------------------------------------------\n")
 cat("--- Test Case 2: Additive model ---\n")
 test_formula_2 <- y ~ group + time
 # We use the same `means` dataframe
-print(fixed_effects_from_average_outcome(formula = test_formula_2, outcome = means_df_1))
+print(fixed_effects_from_average_outcome(formula = test_formula_2, outcome = means_df_1, center = FALSE))
 cat("\n--------------------------------------------------\n")
 
 
@@ -242,7 +237,7 @@ fixed_effects_from_average_outcome(formula = test_formula_10, outcome = means_df
 
 #### Workflow for power_sim() Function
 ## Test with random effects parameter
-test.design.get_fx <- define_design("subject", between = list(group = c("Control", "Placebo", "Treatment"), group2 = c("Control", "Treatment")),
+test.design.get_fx <- define_design(sample_size = list(subject = 20), between = list(group = c("Control", "Placebo", "Treatment"), group2 = c("Control", "Treatment")),
                                     within = list(time = c("Pre","Post"), task = c("easy", "medium", "hard"), task2 = 1:3))
 test.formula <- y ~ group2 * time + (time | subject)
 
@@ -251,8 +246,8 @@ get_fixed_effects_structure(test.formula, test.design.get_fx)
 fixed_effects <- list(
   `(Intercept)` = 10,
   group2Treatment = 0,
-  timePost = 1,
-  `group2Treatment:timePost` = 1.4
+  timePost = 3,
+  `group2Treatment:timePost` = 4.4
 )
 
 get_random_effects_structure(test.formula, test.design.get_fx)
@@ -271,8 +266,8 @@ power_results <- power_sim(formula = test.formula,
                            test_parameter = c("timePost", "group2Treatment:timePost"),
                            fixed_effects = fixed_effects,
                            random_effects = random_effects,
+                           center = TRUE,
                            power_crit = 0.8,
-                           n_start = 150,
                            n_increment = 5,
                            n_sims = 200,
                            parallel_plan = "sequential",
@@ -286,9 +281,9 @@ PowRPriori::plot_sim_model(power_results, type = "data", facet_var = "group2")
 summary(power_results)
 
 ## test with ICC parameter
-test.design.get_fx <- define_design("subject", between = list(group = c("Control", "Placebo", "Treatment"), group2 = c("Control", "Treatment")),
+test.design.get_fx <- define_design(sample_size = list(subject = 20), between = list(group = c("Control", "Placebo", "Treatment"), group2 = c("Control", "Treatment")),
                                     within = list(time = c("Pre","Post"), task = c("easy", "medium", "hard"), task2 = 1:3))
-test.formula <- y ~ group2 * time + (time | subject)
+test.formula <- y ~ group2 * time + (1 | subject)
 
 fixed_effects <- list(
   `(Intercept)` = 10,
@@ -306,6 +301,7 @@ power_results <- power_sim(formula = test.formula,
                            fixed_effects = fixed_effects,
                            icc_specs = iccs,
                            overall_variance = overall_var,
+                           center = TRUE,
                            power_crit = 0.8,
                            n_start = 15,
                            n_increment = 5,
@@ -314,28 +310,30 @@ power_results <- power_sim(formula = test.formula,
 )
 
 plot_sim_model(power_results, type = "power_curve")
-plot_sim_model(power_results, type = "spaghetti", facet_var = "group2")
+plot_sim_model(power_results, type = "data", x_var = "time", facet_var = "group2")
 summary(power_results)
 
 ## Test for nested design
 nested_design <- define_design(
-  id = "pupil",
+  sample_size = list(class = 10, pupil = 20),
   between = list(
     class = list(intervention = c("yes", "no"))
   ),
-  nesting_vars = list(class = factor(1:10))
+  within = list(pupil = list(measurement = c("pre", "post")))
 )
 
-nested_formula <- outcome ~ intervention + (1 | class/pupil)
+nested_formula <- outcome ~ intervention*measurement + (1 | class/pupil)
 
 get_fixed_effects_structure(nested_formula, nested_design)
 
 fixed_nested_effects <- list(
   `(Intercept)` = 10,
-  interventionno = 5
+  interventionno = 2,
+  measurementpost = 3,
+  `interventionno:measurementpost` = 4
 )
 
-get_random_effects_structure(nested_formula, nested_design, family = "binomial")
+get_random_effects_structure(nested_formula, nested_design)
 
 random_nested_effects <- list(
   `pupil:class` = list(
@@ -343,26 +341,31 @@ random_nested_effects <- list(
   ),
   class = list(
     `(Intercept)` = 2
-  )
+  ),
+  sd_resid = 4
 )
 
 power_results <- power_sim(formula = nested_formula,
                            design = nested_design,
-                           test_parameter = c("interventionno"),
+                           test_parameter = NULL,
                            fixed_effects = fixed_nested_effects,
                            random_effects = random_nested_effects,
+                           center = T,
+                           along = "class",
                            power_crit = 0.8,
-                           n_start = 30,
                            n_increment = 5,
                            n_sims = 200,
-                           parallel_plan = "sequential",
+                           parallel_plan = "sequential"
 )
+
+plot_sim_model(power_results, type = "data")
+plot_sim_model(power_results, type = "power_curve")
 
 ## Workflow for linear model (no random effects)
 # --- 1. Design Definition ---
 # A simple between-subject design with two groups
 lm_design <- define_design(
-  id = "subject",
+  sample_size = list(subject = 30),
   between = list(group = c("Control", "Treatment"))
 )
 
@@ -376,7 +379,8 @@ lm_means <- data.frame(
 # Automatically calculate the required regression coefficients
 lm_fixed_effects <- fixed_effects_from_average_outcome(
   formula = lm_formula,
-  outcome = lm_means
+  outcome = lm_means,
+  center = F
 )
 # For a simple lm, we only need to specify the residual standard deviation
 lm_random_effects <- list(sd_resid = 2.0)
@@ -388,7 +392,6 @@ lm_results <- power_sim(
   random_effects = lm_random_effects,
   test_parameter = "groupTreatment",
   family = "gaussian", # Specify the model family
-  n_start = 50,
   n_increment = 10,
   power_crit = 0.80,
   n_sims = 500, # A higher number of sims for more stable estimates
@@ -449,8 +452,8 @@ plot_sim_model(glm_results, type = "data")
 # --- 1. Design Definition ---
 # A longitudinal design with 4 measurement points
 glmer_design <- define_design(
-  id = "subject",
-  within = list(week = c(-1.5, -0.5, 0.5, 1.5), rep_measure = c("t1", "t2"))
+  sample_size = list(subject = 30),
+  within = list(week = c(1:4), rep_measure = c("t1", "t2"))
 )
 #c(-1.5, -0.5, 0.5, 1.5)
 # --- 2. Formula & Effect Specification ---
@@ -487,7 +490,7 @@ glmer_results <- power_sim(
   random_effects = glmer_random_effects,
   test_parameter = "week",
   family = "poisson",
-  n_start = 30,
+  n_start = 300,
   n_increment = 5,
   power_crit = 0.80,
   n_sims = 200,
@@ -503,7 +506,7 @@ plot_sim_model(glmer_results, type = "data") # "data" calls our intelligent spag
 # --- 1. Design Definition ---
 # A longitudinal design with 4 measurement points
 glmer_design <- define_design(
-  id = "subject",
+  sample_size = list(subject = 30),
   between = list(condition = c("A", "B")),
   within = list(time = c("pre", "post"))
 )
@@ -517,7 +520,7 @@ glm_probs <- tidyr::expand_grid(
   time = c("pre", "post")
 )
 # Specify expected success probabilities for each of the 4 cells
-glm_probs$probability <- c(0.5, 0.45, 0.5, 0.9)
+glm_probs$probability <- c(0.5, 0.45, 0.5, 0.75)
 
 # Automatically calculate coefficients on the log scale
 glmer_fixed_effects <- fixed_effects_from_average_outcome(
@@ -528,7 +531,7 @@ glmer_fixed_effects <- fixed_effects_from_average_outcome(
 
 # Specify the random effects (only a random intercept in this case)
 glmer_random_effects <- list(
-  subject = list(`(Intercept)` = 0.5)
+  subject = list(`(Intercept)` = 1.5)
 )
 
 # --- 3. Power Simulation ---
@@ -539,10 +542,10 @@ glmer_results <- power_sim(
   random_effects = glmer_random_effects,
   test_parameter = "conditionB:timepost",
   family = "binomial",
-  n_start = 500,
+  n_start = 300,
   n_increment = 5,
   power_crit = 0.80,
-  n_sims = 2000,
+  n_sims = 200,
   parallel_plan = "sequential"
 )
 

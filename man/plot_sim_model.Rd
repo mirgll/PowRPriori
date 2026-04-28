@@ -13,6 +13,7 @@ plot_sim_model(
   fixed_effects,
   random_effects,
   family,
+  center,
   n,
   x_var,
   group_var,
@@ -29,7 +30,8 @@ plot_sim_model(
   fixed_effects,
   random_effects,
   family = "gaussian",
-  n,
+  center = "auto",
+  n = NULL,
   x_var = NULL,
   group_var = NULL,
   color_var = NULL,
@@ -45,6 +47,7 @@ plot_sim_model(
   fixed_effects = NULL,
   random_effects = NULL,
   family = NULL,
+  center = NULL,
   n = NULL,
   x_var = NULL,
   group_var = NULL,
@@ -66,7 +69,9 @@ plot_sim_model(
 
 \item{family}{The model family. Defaults to \code{"gaussian"}, other possible values are \code{"binomial"} or \code{"poisson"}.}
 
-\item{n}{The total sample size to simulate for the plot.}
+\item{center}{Controls if centering is applied to the predictors prior to plotting. Defaults to \code{"auto"}.}
+
+\item{n}{The total sample size to simulate for the plot (overwrites the lowest design level).}
 
 \item{x_var, group_var, color_var, facet_var}{Strings specifying variables for plot aesthetics.}
 
@@ -96,7 +101,7 @@ or the \code{design} object.
 \examples{
 # 1. Plot prior to simulation to check data plausibility
 design <- define_design(
-  id = "subject",
+  sample_size = list(subject = 30),
   between = list(group = c("Control", "Treatment")),
   within = list(time = c("pre", "post"))
 )
@@ -117,8 +122,7 @@ plot_sim_model(
   y ~ group * time + (1|subject),
   design = design,
   fixed_effects = fixed_effects,
-  random_effects = random_effects,
-  n = 30
+  random_effects = random_effects
 )
 \donttest{
 # 2. Plot from PowRPriori object after simulation
@@ -128,6 +132,7 @@ plot_sim_model(
     fixed_effects = fixed_effects,
     random_effects = random_effects,
     test_parameter = "groupTreatment:timepost",
+    center = TRUE,
     n_start = 20,
     n_increment = 5,
     n_sims = 100, # Using a smaller n_sims for a quick example

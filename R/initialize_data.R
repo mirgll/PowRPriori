@@ -1,131 +1,127 @@
 #' Create the Design Matrix for a Simulation
 #'
 #' @description
-#' An internal helper function that takes the design specification and a sample
-#' size to generate a single data frame representing all observations for one
-#' simulation run. It handles within-, between-, nested, and crossed factors.
+#' An internal helper function that takes the design specification and an lme4-sytle formula to generate a
+#' design matrix representing the structure of the experimental design.
+#'
 #'
 #' @param design A `PowRPriori_design` object from `define_design()`.
-#' @param current_n The sample size for which the design matrix should be generated.
-#' @param n_is_total A boolean that controls how `current_n` is interpreted. `TRUE` assumes that the whole sample used for the simulation should be size
-#' `current_n`, `FALSE` assumes that `current_n` specifies the size of each cell as defined by `design`.
+#' @param formula The lme4-style model formula.
 #'
 #' @return A tibble (data frame) with predictor variables.
 #'
 #' @importFrom tidyr expand_grid crossing
 #' @importFrom purrr keep map map_int
 #' @importFrom dplyr bind_cols left_join
-.create_design_matrix <- function(design, current_n, n_is_total = TRUE) {
+.create_design_matrix <- function(design, formula = NULL) {
 
-  # 1. Extract information from design object
-  id_var       <- design$id
-  within_vars  <- lapply(design$within, .to_factor_safely)
-  nesting_vars <- lapply(design$nesting_vars, .to_factor_safely)
+  base_grid <- lapply(design$sample_size, seq_len)
+  design_df <- tidyr::expand_grid(!!!base_grid)
 
-  within_factors   <- purrr::keep(within_vars, ~!is.list(.))
-  nesting_factors  <- purrr::keep(nesting_vars, ~!is.list(.))
-  within_continuous <- purrr::keep(design$within, is.list)
+  design_df[[".PowR_id"]] <- 1:nrow(design_df)
 
+  # 2. Extract nesting structure from formula
+  nesting_map <- list()
 
-  is_hierarchical <- is.list(design$between[[1]]) &&
-    !all(c("mean", "sd") %in% names(design$between[[1]]))
+  if (!is.null(formula)) {
+    bars <- lme4::findbars(as.formula(formula))
+    valid_levels <- names(design$sample_size)
 
-  if (!is_hierarchical && length(design$between) > 0) {
-    design$between <- setNames(list(design$between), id_var)
-  }
+    all_groupings <- list()
+    if (length(bars) > 0) {
+      for (b in bars) {
+        grouping_str <- deparse(b[[3]])
+        tokens <- trimws(unlist(strsplit(grouping_str, "[/:]")))
 
-  all_between_factors <- purrr::map(design$between, function(level_list) {
-    purrr::keep(level_list, Negate(is.list))
-  })
+        tokens <- intersect(tokens, valid_levels)
 
-  # 2. Create between subjects structure
-  if (!n_is_total) {
-    if (length(nesting_factors) > 0) {
-      n_groups <- nrow(tidyr::expand_grid(!!!nesting_factors))
-      n_total <- current_n * n_groups
-    } else {
-      n_groups <- prod(purrr::map_int(unlist(all_between_factors, recursive = FALSE), length))
-      if (n_groups == 0) n_groups <- 1
-      n_total <- current_n * n_groups
-    }
-  } else {
-    n_total <- current_n
-  }
-
-  subjects_df <- tibble::tibble(!!id_var := 1:n_total)
-
-  if (length(nesting_factors) > 0) {
-    nesting_combos <- tidyr::expand_grid(!!!nesting_factors)
-    n_nesting_groups <- nrow(nesting_combos)
-
-    n_per_nesting <- ceiling(n_total / n_nesting_groups)
-    assigned_nesting <- nesting_combos[rep(seq_len(n_nesting_groups), each = n_per_nesting, length.out = n_total), ]
-    subjects_df <- dplyr::bind_cols(subjects_df, assigned_nesting)
-  }
-
-  assignment_levels <- names(design$between)
-
-  for (level in assignment_levels) {
-    level_vars <- design$between[[level]]
-
-    level_factors <- purrr::keep(level_vars, ~!is.list(.))
-    level_continuous <- purrr::keep(level_vars, is.list)
-
-    if (length(level_factors) > 0) {
-      level_factors <- lapply(level_factors, .to_factor_safely)
+        if (length(tokens) > 0) {
+          all_groupings <- c(all_groupings, list(tokens))
+        }
+      }
     }
 
-    if (length(level_factors) > 0) {
-      level_combos <- tidyr::expand_grid(!!!level_factors)
-      n_level_groups <- nrow(level_combos)
+    for (lvl in valid_levels) {
+      containing_groupings <- purrr::keep(all_groupings, ~ lvl %in% .x)
 
-      if (level == id_var) {
-        target_units <- subjects_df[[id_var]]
+      if (length(containing_groupings) > 0) {
+        lengths <- sapply(containing_groupings, length)
+        nesting_map[[lvl]] <- containing_groupings[[which.min(lengths)]]
       } else {
-        target_units <- unique(subjects_df[[level]])
+        nesting_map[[lvl]] <- lvl
+      }
+    }
+  }
+
+  # 3. Assign between variables
+  if (!is.null(design$between)) {
+
+    is_hierarchical <- is.list(design$between[[1]]) &&
+      !all(c("mean", "sd") %in% names(design$between[[1]]))
+
+    if (!is_hierarchical && length(design$between) > 0) {
+      design$between <- stats::setNames(list(design$between), ".PowR_id")
+    }
+
+    for (level in names(design$between)) {
+      level_vars <- design$between[[level]]
+      level_factors <- purrr::keep(level_vars, ~!is.list(.))
+      level_continuous <- purrr::keep(level_vars, is.list)
+
+      grouping_cols <- level
+      if (!is.null(nesting_map[[level]])) {
+        grouping_cols <- nesting_map[[level]]
       }
 
-      n_units <- length(target_units)
-      n_per_group <- floor(n_units / n_level_groups)
-      remainder <- n_units %% n_level_groups
-      group_indices <- rep(1:n_level_groups, times = n_per_group)
-      if (remainder > 0) group_indices <- c(group_indices, 1:remainder)
+      target_units <- unique(design_df[, grouping_cols, drop = FALSE])
+      n_groups <- nrow(target_units)
 
-      lookup_df <- tibble::tibble(
-        !!level := target_units,
-        level_combos[sample(group_indices), ]
-      )
+      if (length(level_factors) > 0) {
+        level_factors <- lapply(level_factors, .to_factor_safely)
+        level_combos <- tidyr::expand_grid(!!!level_factors)
+        n_combos <- nrow(level_combos)
 
-      subjects_df <- dplyr::left_join(subjects_df, lookup_df, by = level)
-    }
+        n_per_combo <- floor(n_groups / n_combos)
+        remainder <- n_groups %% n_combos
+        combo_indices <- rep(1:n_combos, times = n_per_combo)
+        if (remainder > 0) combo_indices <- c(combo_indices, 1:remainder)
 
-    for (cont_var_name in names(level_continuous)) {
-      params <- level_continuous[[cont_var_name]]
-
-      if (level == id_var) {
-        target_units <- subjects_df[[id_var]]
-      } else {
-        target_units <- unique(subjects_df[[level]])
+        lookup_df <- dplyr::bind_cols(
+          target_units,
+          level_combos[sample(combo_indices), , drop = FALSE]
+        )
+        design_df <- dplyr::left_join(design_df, lookup_df, by = grouping_cols)
       }
 
-      lookup_df <- tibble::tibble(
-        !!level := target_units,
-        !!cont_var_name := rnorm(length(target_units), mean = params$mean, sd = params$sd)
-      )
-      subjects_df <- dplyr::left_join(subjects_df, lookup_df, by = level)
+      for (cont_var_name in names(level_continuous)) {
+        params <- level_continuous[[cont_var_name]]
+        lookup_df <- target_units
+        lookup_df[[cont_var_name]] <- stats::rnorm(n_groups, mean = params$mean, sd = params$sd)
+        design_df <- dplyr::left_join(design_df, lookup_df, by = grouping_cols)
+      }
     }
   }
 
-  if (length(within_factors) > 0) {
-    design_df <- tidyr::crossing(subjects_df, !!!within_factors)
-  } else {
-    design_df <- subjects_df
-  }
+  # 4. Within variables
+  if (!is.null(design$within)) {
+    flat_within <- list()
+    for (lvl in names(design$within)) {
+      for (var_name in names(design$within[[lvl]])) {
+        flat_within[[var_name]] <- design$within[[lvl]][[var_name]]
+      }
+    }
 
+    within_vars <- lapply(flat_within, .to_factor_safely)
+    within_factors <- purrr::keep(within_vars, ~!is.list(.))
+    within_continuous <- purrr::keep(flat_within, is.list)
 
-  for (cont_var_name in names(within_continuous)) {
-    params <- within_continuous[[cont_var_name]]
-    design_df[[cont_var_name]] <- stats::rnorm(nrow(design_df), mean = params$mean, sd = params$sd)
+    if (length(within_factors) > 0) {
+      design_df <- tidyr::crossing(design_df, !!!within_factors)
+    }
+    for (cont_var_name in names(within_continuous)) {
+      params <- within_continuous[[cont_var_name]]
+      design_df[[cont_var_name]] <- stats::rnorm(nrow(design_df), mean = params$mean, sd = params$sd)
+    }
   }
 
   return(design_df)

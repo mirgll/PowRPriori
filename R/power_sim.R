@@ -16,7 +16,7 @@
 #' @param design A `PowRPriori_design` object created by `define_design()`.
 #' @param test_parameter A character vector of the variable names to test for power.
 #'   If `NULL` (default), power is calculated for all fixed effects except the intercept. Note: The parameter names need to
-#'   comply with the names expected by the model. Correctly naming of the variables is aided by the output of the `get_fixed_effects_structure()` helper function.
+#'   comply with the names expected by the model. Correctly naming the variables is aided by the output of the `get_fixed_effects_structure()` helper function.
 #' @param fixed_effects A named list of the fixed-effects coefficients. It is highly
 #'   recommended to generate this using `get_fixed_effects_structure()` or
 #'   `fixed_effects_from_average_outcome()`.
@@ -29,18 +29,21 @@
 #' @param family The model family: `"gaussian"` (for LMMs), `"binomial"` (for logistic GLMMs),
 #'   or `"poisson"` (for poisson GLMMs).
 #' @param adjust_p_value Controls how p-values in the data simulation are adjusted when power is calculated for more than
-#'  one parameter (as specified in `test_paramter`). Possible values are the same as in the function `p.adjust`. Defaults to "BH", which is the
+#'  one parameter (as specified in `test_parameter`). Possible values are the same as in the function `p.adjust`. Defaults to "BH", which is the
 #'  Benjamini-Hochberg correction. Setting this to `FALSE` disables p-value adjustment, although this is discouraged.
+#' @param center Controls if the simulation should automatically center predictors. Defaults to
+#'  `"auto"`, which extracts the centering attribute (if present) from the `fixed_effects` list. Set to `TRUE`
+#'  to force mean-centering, or `FALSE` to disable it.
 #' @param power_crit The desired statistical power level (e.g., 0.80 for 80%).
-#' @param n_start The starting sample size for the simulation.
+#' @param along A string specifying the sample size variable that the power analysis should be based on. Must be present in the
+#'  `sample_size` variable of the `design` parameter.
+#' @param n_start The starting sample size for the simulation. Defaults to `NULL`, in which case the number of the `along` parameter
+#'  specified in the `design` parameter object is used.
 #' @param n_increment The step size for increasing the sample size in each iteration.
 #' @param max_simulation_steps A hard stop for the simulation, limiting the number of
 #'   sample size steps to prevent infinite loops. Defaults to 100 steps.
 #' @param n_issue_stop_prop The proportion of model issues (e.g., singular fits,
 #'   non-convergence) at which the simulation will be automatically canceled. Defaults to a proportion of 20%.
-#' @param n_is_total Boolean that controls how sample sizes are interpreted. If `TRUE`
-#'   (default), `n_start` refers to the total sample size. If `FALSE`, it refers to
-#'   the sample size per cell (see `define_design()` for details on nested designs).
 #' @param n_sims The number of simulations to run for each sample size step. Defaults to 2000.
 #' @param alpha The significance level (alpha) for the power calculation. Defaults to 0.05.
 #' @param parallel_plan A string specifying the `future` plan for parallel processing.
@@ -62,7 +65,7 @@
 #' @examples
 #'
 #'   design <- define_design(
-#'     id = "subject",
+#'     sample_size = list(subject = 20),
 #'     between = list(group = c("Control", "Treatment")),
 #'     within = list(time = c("pre", "post"))
 #'   )
@@ -85,7 +88,7 @@
 #'     fixed_effects = fixed_effects,
 #'     random_effects = random_effects,
 #'     test_parameter = "groupTreatment:timepost",
-#'     n_start = 20,
+#'     center = TRUE,
 #'     n_increment = 5,
 #'     n_sims = 100, # Use low n_sims for quick examples
 #'     parallel_plan = "multisession"
@@ -105,44 +108,76 @@ power_sim <- function(
     overall_variance = NULL,
     family = "gaussian",
     adjust_p_value = "BH",
+    center = "auto",
     power_crit = 0.80,
-    n_start,
+    along = NULL,
+    n_start = NULL,
     n_increment,
     max_simulation_steps = 100,
     n_issue_stop_prop = 0.2,
-    n_is_total = TRUE,
     n_sims = 2000,
     alpha = 0.05,
     parallel_plan = "multisession") {
 
-# 1. Error checks
+  # Temporarily enforce standard dummy coding to prevent issues with global user settings
+  old_opts <- options(contrasts = c("contr.treatment", "contr.poly"))
+  on.exit(options(old_opts), add = TRUE)
+
+  # 0. Basic input validation
+  if (!is.numeric(power_crit) || power_crit <= 0) stop("`power_crit` must be a numeric value strictly greater than 0 and less than 1.", call. = FALSE)
+  if (power_crit >= 1) {
+    if (power_crit <= 100) stop(paste0("`power_crit` must be a proportion between 0 and 1. Did you mean ", power_crit / 100, " instead of ", power_crit, "?"), call. = FALSE)
+    else stop("`power_crit` must be a numeric value between 0 and 1.", call. = FALSE)
+  }
+  if (!is.numeric(n_sims) || n_sims < 1 || n_sims %% 1 != 0) stop("`n_sims` must be a positive integer.", call. = FALSE)
+  if (!is.numeric(n_increment) || n_increment < 1 || n_increment %% 1 != 0) stop("`n_increment` must be a positive integer.", call. = FALSE)
+  if (!is.list(fixed_effects)) stop("`fixed_effects` must be a list. Tip: Use `get_fixed_effects_structure()`.", call. = FALSE)
+  if (!is.null(random_effects) && !is.list(random_effects)) stop("`random_effects` must be a list. Tip: Use `get_random_effects_structure()`.", call. = FALSE)
+  if (!family %in% c("gaussian", "binomial", "poisson")) stop(paste0("`family` must be one of: '", paste(c("gaussian", "binomial", "poisson"), collapse = "', '"), "'."), call. = FALSE)
+
+  # 1. Error checks
   formula <- as.formula(formula)
+
+  if (is.null(along)) {
+    along <- names(design$sample_size)[length(design$sample_size)]
+  } else if (!along %in% names(design$sample_size)) {
+    stop(paste("The 'along' parameter must be one of the levels defined in sample_size:",
+               paste(names(design$sample_size), collapse=", ")), call. = FALSE)
+  }
+
+  if(is.null(n_start)){
+    n_start <- design$sample_size[[along]]
+  }
 
   all_needed_vars <- all.vars(formula)[-1]
   all_defined_vars <- list()
-  all_defined_vars[[design$id]] <- NA
 
-  if(!is.null(design$nesting_vars)) {
-    all_defined_vars <- c(all_defined_vars, design$nesting_vars)
+  # Alle in sample_size definierten Variablen sammeln
+  for (name in names(design$sample_size)) {
+    all_defined_vars[[name]] <- NA
   }
 
-  if(!is.null(design$within)) {
-    all_defined_vars <- c(all_defined_vars, design$within)
+  tmp_between_within_list <- list()
+  if(!is.null(design$between) && !is.null(design$within)){
+    tmp_between_within_list <- c(design$between, design$within)
+  } else {
+    if(!is.null(design$between)) tmp_between_within_list <- design$between
+    else tmp_between_within_list <- design$within
   }
 
-  if(!is.null(design$between)) {
-    for(name in names(design$between)) {
-      element <- design$between[[name]]
+  if(!is.null(tmp_between_within_list)) {
+    for(index in seq_along(tmp_between_within_list)) {
+      level_name <- names(tmp_between_within_list)[index]
+      element <- tmp_between_within_list[[index]]
       is_nested_level <- is.list(element) && !is.null(names(element)) && !all(c("mean", "sd") %in% names(element))
 
       if(is_nested_level) {
         all_defined_vars <- c(all_defined_vars, element)
-
-        if(!name %in% names(all_defined_vars)) {
-          all_defined_vars[[name]] <- NA
+        if(!level_name %in% names(all_defined_vars)) {
+          all_defined_vars[[level_name]] <- NA
         }
       } else {
-        all_defined_vars[[name]] <- element
+        all_defined_vars[[level_name]] <- element
       }
     }
   }
@@ -175,7 +210,7 @@ power_sim <- function(
 
   if (has_random_effects && is.null(random_effects) && is.null(icc_specs)) {
     stop(
-      "Random effects were specified (in `random_effects` or `icc_specs`), but the formula does not contain a random effects term.\n",
+      "Random effects were specified in `random_effects` or `icc_specs`, but the formula does not contain a random effects term.\n",
       call. = FALSE
     )
   }
@@ -234,7 +269,7 @@ power_sim <- function(
     stop("The supplied formula contains random effects.\nYou need to specify either a random effects structure or ICCs for your design.", call. = FALSE)
   }
 
-# 2. Simulation
+  # 2. Simulation Setup
   if (has_random_effects) {
     if (!is.null(random_effects)) {
       if (family == "gaussian" && is.null(random_effects$sd_resid)) {
@@ -281,37 +316,55 @@ power_sim <- function(
     }
   }
 
-  n_var <- design$id
-  between_vars <- names(design$between)
+  if (identical(center, "auto")) {
+    is_centered_attr <- attr(fixed_effects, "is_centered")
 
-  data_structure <- c(
-    setNames(list(NA), n_var),
-    design$between,
-    design$within
-  )
+    if (!is.null(is_centered_attr)) {
+      center <- is_centered_attr
+    } else{
+      hasInteraction <- any(grepl(":", attr(stats::terms(nobars(formula)), "term.labels")))
+
+      if(hasInteraction){
+        stop("Your model contains interaction effects and you manually specified your fixed effects without specifying if the predictors should be centered. Since centering changes the interpretation and power of main effects, PowRPriori cannot safely guess your intent. Please explicitly add 'center = TRUE' (recommended if your weights are effect-coded) or 'center = FALSE' (if your weights use dummy-coding) to your power_sim() call.", call. = FALSE)
+      } else {
+        center <- FALSE
+      }
+    }
+  }
+
+  n_var <- along
 
   results_list <- list()
   current_n <- n_start
   last_power <- 0
   sim_step <- 0
-  nesting_var <- names(design$nesting_vars)[1]
-  n_nesting_var <- length(design$nesting_vars[[1]])
 
   future::plan(parallel_plan)
   on.exit(future::plan("sequential"), add = TRUE)
 
   # Main loop for simulation and power analysis
   while (last_power < power_crit && sim_step < max_simulation_steps) {
-    if(length(nesting_var) != 0
-       ) {
-      message(paste("\n--- Starting simulation for", n_var, "=", current_n, "and", nesting_var, "=", n_nesting_var, "with", n_sims, "simulations ---"))
+
+    temp_design <- design
+    temp_design$sample_size[[along]] <- current_n
+
+    static_sizes <- temp_design$sample_size[names(temp_design$sample_size) != along]
+    if (length(static_sizes) > 0) {
+      sizes_str <- paste(paste(names(static_sizes), unlist(static_sizes), sep="="), collapse=", ")
+      message(paste("\n--- Starting simulation for", along, "=", current_n, "| Static:", sizes_str, "|", n_sims, "simulations ---"))
     } else {
-      message(paste("\n--- Starting simulation for", n_var, "=", current_n, "with", n_sims, "simulations ---"))
+      message(paste("\n--- Starting simulation for", along, "=", current_n, "with", n_sims, "simulations ---"))
     }
 
     sim_results <- foreach(sim = 1:n_sims, .combine = "c", .multicombine = TRUE, .options.future = list(seed = TRUE)) %dofuture% {
-        sim_data <- .create_design_matrix(design, current_n, n_is_total) %>%
-          .simulate_outcome(., formula, fixed_effects, sds_random, family)
+
+      sim_data <- .create_design_matrix(temp_design, formula = formula)
+
+      if (center) {
+        sim_data <- .center_predictors(sim_data, formula, subject_id_col = ".PowR_id")
+      }
+
+      sim_data <- .simulate_outcome(sim_data, formula, fixed_effects, sds_random, family)
 
       model_fit <- NULL
       has_conv_warning <- FALSE
@@ -319,8 +372,6 @@ power_sim <- function(
       error_msg <- NA_character_
       has_identifiable_warning <- FALSE
       has_other_warning <- FALSE
-
-
 
       suppressMessages(suppressWarnings(
         tryCatch(
@@ -398,8 +449,8 @@ power_sim <- function(
           re_estimates <- re_list
 
         } else {
-            coeffs <- stats::coef(model_fit)
-            if(family == "gaussian") re_estimates <- list(sd_resid = summary(model_fit)$sigma)
+          coeffs <- stats::coef(model_fit)
+          if(family == "gaussian") re_estimates <- list(sd_resid = summary(model_fit)$sigma)
         }
       }
 
@@ -434,10 +485,10 @@ power_sim <- function(
 
     p_values_ColNames <- names(diagnostics_df %>% dplyr::select(starts_with("p_")))
 
-    if(!isFALSE(adjust_p_value) > 0 & length(p_values_ColNames) > 1) {
+    if(!isFALSE(adjust_p_value) && length(p_values_ColNames) > 1) {
       diagnostics_df[p_values_ColNames] <- t(apply(diagnostics_df[p_values_ColNames],
                                                    MARGIN = 1,
-                                                   FUN = p.adjust,
+                                                   FUN = stats::p.adjust,
                                                    method = adjust_p_value))
     }
 
@@ -481,7 +532,7 @@ power_sim <- function(
 
     if(has_random_effects){
       message(paste("Power (", power_summary_string, ") | Model Issues:", n_model_issues,
-                  "| Other Warnings:", n_other_warnings, "\n---"))
+                    "| Other Warnings:", n_other_warnings, "\n---"))
     } else {
       message(paste("Power (", power_summary_string, ")"))
     }
@@ -498,7 +549,7 @@ power_sim <- function(
         message(paste0("\n--- Simulation canceled ---\n",
                        "At N = ", current_n, ", ", round(n_model_issues / n_sims * 100), "% of models ",
                        "had fitting issues.\n",
-                       "This suggests a potential issue with the model specification or the defined parameters.\n",
+                       "This could indicate a potential issue with the model specification or the defined parameters.\n",
                        "Please check model parameters (e.g. random effects structure, predictor scaling, etc.).\n"))
         break
       }
@@ -507,8 +558,17 @@ power_sim <- function(
     current_n <- current_n + n_increment
     sim_step <- sim_step + 1
   }
-  final.sim.data <- .create_design_matrix(design, current_n, n_is_total) %>%
-                    .simulate_outcome(formula, fixed_effects, sds_random, family = family)
+
+  temp_design <- design
+  temp_design$sample_size[[along]] <- current_n
+  final.sim.data <- .create_design_matrix(temp_design, formula = formula)
+
+  if (center){
+    final.sim.data <- .center_predictors(final.sim.data, formula, subject_id_col = ".PowR_id")
+  }
+
+  final.sim.data <- .simulate_outcome(final.sim.data, formula, fixed_effects, sds_random, family = family)
+
   final_results_df <- do.call(rbind, results_list)
   rownames(final_results_df) <- NULL
   names(final_results_df)[1] <- n_var
@@ -517,12 +577,12 @@ power_sim <- function(
   if(has_critical_model_issues) {
     message(paste0("\nSimulation stopped due to the percentage of simulated models showing fitting issues being larger than the specified `n_issue_stop_prop` parameter."))
   } else if (sim_step == max_simulation_steps) {
-    message(paste0("\nMaximum number of simulation steps reached (", max_simulation_steps, "). Simulation stopped due to risk of infinite loop.\nYour model potentially needs adaptation, or, if you want to continue with the current parameters, try increasing the `n_start` parameter."))
+    message(paste0("\nSimulation stopped: Maximum number of simulation steps reached (", max_simulation_steps, "). If you did not change the `max_simulation_steps` parameter, this happened so the simulation does not run infintely.\nIf you want to continue with the current parameters, try increasing the `n_start` parameter."))
   } else {
 
     message(paste0("\nPower of at least ", power_crit, " achieved at N = ", final_results_df[[n_var]][nrow(final_results_df)], " (Power: ", round(last_power, 2), ")."))
-    if(!isFALSE(adjust_p_value) > 0 & length(p_values_ColNames) > 1) {
-      message("Note: Statistical power was calculated for more than one parameter. Therefore,  p-values were adjusted for multiple comparisons.")
+    if(!isFALSE(adjust_p_value) && length(p_values_ColNames) > 1) {
+      message("Note: Statistical power was calculated for more than one parameter. p-values were adjusted for multiple comparisons.")
     }
   }
 
@@ -547,7 +607,8 @@ power_sim <- function(
     power_crit = power_crit,
     all_coefficients = as.data.frame(coefficients_df),
     all_re_estimates = as.data.frame(re_estimates_df, check.names = FALSE),
-    critical_model_issues = has_critical_model_issues
+    critical_model_issues = has_critical_model_issues,
+    center = center
   )
   class(result) <- "PowRPriori"
   return(result)

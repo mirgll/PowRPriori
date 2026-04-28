@@ -4,21 +4,17 @@
 \alias{.create_design_matrix}
 \title{Create the Design Matrix for a Simulation}
 \usage{
-.create_design_matrix(design, current_n, n_is_total = TRUE)
+.create_design_matrix(design, formula = NULL)
 }
 \arguments{
 \item{design}{A \code{PowRPriori_design} object from \code{define_design()}.}
 
-\item{current_n}{The sample size for which the design matrix should be generated.}
-
-\item{n_is_total}{A boolean that controls how \code{current_n} is interpreted. \code{TRUE} assumes that the whole sample used for the simulation should be size
-\code{current_n}, \code{FALSE} assumes that \code{current_n} specifies the size of each cell as defined by \code{design}.}
+\item{formula}{The lme4-style model formula.}
 }
 \value{
 A tibble (data frame) with predictor variables.
 }
 \description{
-An internal helper function that takes the design specification and a sample
-size to generate a single data frame representing all observations for one
-simulation run. It handles within-, between-, nested, and crossed factors.
+An internal helper function that takes the design specification and an lme4-sytle formula to generate a
+design matrix representing the structure of the experimental design.
 }

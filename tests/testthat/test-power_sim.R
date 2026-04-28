@@ -1,5 +1,5 @@
 # Setup minimal objects for testing validation logic
-design <- define_design(id = "subject", between = list(group = c("A", "B")))
+design <- define_design(sample_size = list(subject = 30), between = list(group = c("A", "B")))
 formula_lmm <- y ~ group + (1|subject)
 formula_lm <- y ~ group
 fe <- list(Intercept = 1, groupB = 0.5)

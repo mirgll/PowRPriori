@@ -20,40 +20,39 @@ knitr::opts_chunk$set(
 
 ## Introduction
 
-Welcome to `PowRPriori`! A priori power analysis is a critical step when designing robust and efficient studies. This package is designed to make power analysis for complex linear models (LMs, LMMs, GLMs, and GLMMs) intuitive, user-friendly and accessible. It ensures robust estimations by using Monte-Carlo-style data simulation as a foundation for the power analysis. One of the main goals of the package is to provide a framework for a priori power analyses which does not necessitate a deep understanding of the underlying statistics or ins and outs of the model specifications. Ideally, you can focus on your research design and expected effect sizes with the package doing the rest for you without overly complicated function parameters.
+Welcome to `PowRPriori`! A-priori power analysis is a critical step when designing robust and efficient studies. This package is designed to make power analysis for complex linear models (LMs, LMMs, GLMs, and GLMMs) intuitive, user-friendly and accessible. It ensures robust estimations by using Monte-Carlo-style data simulation as a foundation for the power analysis. One of the main goals of the package is to provide a framework for a-priori power analyses which does not necessitate a deep understanding of the underlying statistics or ins and outs of the model specifications. Ideally, you can focus on your research design and expected effect sizes, with the package doing the rest for you without overly complicated function parameters.
 
 Currently, `PowRPriori` offers the following functions:
 
 1. In its current state, `PowRPriori` can handle a fairly large amount of different designs. You can conduct power analyses for any standard linear, logistic, or poisson regression model (in the "classical" sense of the general linear model, without random effects). `PowRPriori` automatically handles the specified research design and model formula you plug into it, and there are very little technical limits to what you can specify.
 
-2. For (generalized) mixed effects models, `PowRPriori` is currently also equipped to handle a fairly large amount of different designs. Currently, the package supports a maximum of two levels of hierarchy in the design (e.g., Level 1: Pupil, Level 2: Class). Three-level designs (e.g., Pupil < Class < School) are not yet supported. Otherwise, `PowRPriori` can handle designs with crossed random intercepts (e.g. `(1|subject) + (1|item)`), or designs with one or more random slopes (e.g. `(intervention|subject)` or `(intervention + time|subject)`), offering a high degree of flexibility.
+2. For (generalized) mixed effects models, `PowRPriori` is currently also equipped to handle a fairly large amount of different designs. The package supports complex hierarchical and nested designs (e.g., Pupil < Class < School), designs with crossed random intercepts (e.g. `(1|subject) + (1|item)`), or designs with one or more random slopes (e.g. `(intervention|subject)` or `(intervention + time|subject)`), offering a high degree of flexibility.
 
 3. The possibility to either directly specify the random effects or, if the model only includes random intercepts, to also define them via Intraclass-Coefficients.
 
-4. `PowRPriori` offers user-friendly helper functions that aim to streamline the process of conducting the power analysis and taking the user somewhat away from the statistical details. It does so by providing functions that generate usable code snippets to help correctly define the fixed and random effects parts of the model. Moreover, it also provides the possibility to generate the correct regression weights from the expected mean outcomes of a study.
+4. Functions to easily handle mean-centering of predictors and p-value adjustments when multiple effects should be tested.
 
-5. Users can conduct power analyses for different model families. At the moment, gaussian, binomial (i.e. logistic) and poisson regression models are supported.
+5. `PowRPriori` offers user-friendly helper functions that aim to streamline the process of conducting the power analysis and distancing the user from the statistical details. It does so by providing functions that generate usable code snippets to help correctly define the fixed and random effects parts of the model. Moreover, it also provides the possibility to generate the correct regression weights from the expected mean outcomes of a study.
 
-6. A detailed summary of the power analysis, providing an overview of the simulation as well as parameter recovery details displaying how well the simulated data aligns with the model specifications.
+6. Users can conduct power analyses for different model families. At the moment, gaussian, binomial (i.e. logistic) and poisson regression models are supported.
 
-7. Detailed visualization options, such as displaying the power curve after the simulation or plotting sample data to allow for inspecting the plausibility of the generated data.  
+7. A detailed summary of the power analysis, providing an overview of the simulation as well as parameter recovery details displaying how well the simulated data aligns with the model specifications.
+
+8. Detailed visualization options, such as displaying the power curve after the simulation or plotting sample data to allow the user to assess the plausibility of the generated data.  
 
 
-This vignette will guide you through the entire workflow of doing a power analysis with `PowRPriori` using a realistic example. It will cover:
+This vignette will guide you through the entire workflow of doing power analyses with `PowRPriori`, using a realistic example. It will cover:
 
 1.  Defining a study design.
-
 2.  Specifying expected effects.
-
 3.  Running the power simulation.
-
 4.  Interpreting and visualizing the results.
 
-Additionally, it will show brief examples of how to adapt the workflow for other supported use-cases.
+Additionally, it will show additional examples of how to adapt the workflow for other supported use-cases.
 
 ## Getting Started
 
-First, the package needs to be installed and loaded. `tidyr` is loaded as well here to create tables.
+First, the package needs to be installed and loaded. `tidyr` is loaded as well here to help create tables.
 ```{r eval=FALSE}
 install.packages("PowRPriori")
 ```
@@ -65,73 +64,78 @@ library(tidyr)
 
 ## Complete Example of the Workflow: A 2x2 Mixed Design
 
-Let's imagine a common research scenario: You want to test a new cognitive training program. 
+Let's imagine the following research scenario: You want to test a new cognitive training program. 
 
 **Research Question:** Does your new training program (`group`: Treatment vs. Control) improve memory scores from a pre-test to a post-test (`time`) more than in a control group?
 
-This is a classic 2x2 mixed design, with `group` as a between-subject factor and `time` as a within-subject factor. Since `time` is a within-subject factor, it can be seen as being "nested" within each individual measured, making this research design well suited to be analyzed using a linear mixed effects model. The important questions for your power analysis are, what does your study design look like, what are plausible effect sizes you can expect (based on the existing literature and / or data) and what are reasonable estimates for the random effects structure?
+This is a classic 2x2 mixed design, with `group` as a between-subject factor and `time` as a within-subject factor. Since `time` is a within-subject factor, it can be seen as being "nested" within each individual measured, making this research design well suited to be analyzed with a linear mixed effects model. The important questions for your power analysis are: What does your study design look like, what are plausible effect sizes you can expect (based on the existing literature and / or data) and what are reasonable estimates for the random effects structure?
 
 ### Step 1: Defining the Study Design
 
-First, you need to translate your study design into a `PowRPriori_design` object. You need to specify the name of your subject ID (the `id`-parameter, in your case `subject`), your between-subject factors, and your within-subject factors. The `id` parameter always represents the analysis unit on the lowest level of your mixed effects design which you sample, and does not necessarily have to be a person (it could also be e.g. a plot in a garden).
+First, you need to translate your study design into a `PowRPriori_design` object, using the `define_design` function. Within this function, all parameters are specified as lists. You can specify the building blocks and initial sample size of your study using the `sample_size` parameter, alongside your between-subject and within-subject factors.
 
 ```{r define-design}
 my_design <- define_design(
-  id = "subject",
+  sample_size = list(subject = 30), 
   between = list(group = c("Control", "Treatment")),
   within = list(time = c("pre", "post"))
 )
 ```
 
+**Note on flexibility:** `define_design()` is the architectural core of the package and highly flexible. While a straightforward 2x2 design is used here, you can easily use it to build more complex hierarchical structures (like cluster-randomized trials or crossed designs) simply by adjusting the `sample_size` and `between` arguments. These advanced setups are explained more in the *Other Use Cases* section at the end of this vignette.
+
 ### Step 2: Defining the Statistical Model
 
-Next you need to translate your research question into a testable statistical model. This package uses lme4-style formulas to do that. The research question of the example used here implies an interaction effect, since you want to know if the effect of `time` is different between the Control and the Treatment groups. You also need to include a random intercept for `subject` to account for the fact that measurements from the same person are correlated (representing the "nesting" of the data).
+Next you need to transform your research question into a testable statistical model. This package uses lme4-style formulas to do that. The research question of the example implies an interaction effect, since you want to know if the effect of `time` differs between the Control and the Treatment group. You also need to include a random intercept for `subject` to account for the fact that measurements from the same person are correlated (representing the "nesting" of the data).
 
 In the case of the exemplary study design in this vignette, the lme4-style model formula should look like this: 
 ```{r define formula}
 my_formula <- score ~ group * time + (1 | subject)
 ```
 
-On the left hand side of the tilde is your outcome variable and on the right hand side your combination of fixed (`group * time`) and random (`(1 | subject)`) effects. 
-
-These next two subsections will feature very brief, non-exhaustive tutorials on lme4-style formulas, to aid in correctly defining the myriad possible fixed and random effects structures. For a more detailed description, you can look up @JSSv067i01.
+The next two subsections will feature very brief, non-exhaustive tutorials on lme4-style formulas, to aid in correctly defining the myriad possible fixed and random effects structures. For a more detailed description, you can look up @JSSv067i01.
 
 #### Fixed effects in lme4-formulas
 
-In theory, you can put together any number of fixed effects in lme4-style formulas via the `+`-sign. For example, a formula analyzing the influence of several fixed effects factors on an outcome could look like so: `outcome ~ factor1 + factor2 + factor3 + ... + factorX`. Now, such a formula assumes that none of the specified factors are associated in any way. 
+In theory, you can put together any number of fixed effects in lme4-style formulas via the `+`-sign. For example, a formula analyzing the influence of several fixed effects on some outcome could look like so: `outcome ~ factor1 + factor2 + factor3 + ... + factorX`. This specific formula assumes that none of the specified factors are associated in any way. 
 
-There are however instances where you might wish to analyze whether the influence of one factor on the outcome is depending on another factor in some way - i.e. you want to analyze a potential interaction effect. Interaction effects are included in lme4-style formulas via the `:` sign (e.g. `outcome ~ factor1:factor2`). If you include only `factor1:factor2` in your model formula, lme4 will explicitly only estimate the interaction term in your model, but not the main effects. To include the main as well as the interaction effects, you need to write `outcome ~ factor1 + factor2 + factor1:factor2`. 
+There are however instances where you might wish to analyze whether the influence of one factor on the outcome is depending on another factor in some way - i.e. you want to analyze a potential interaction effect. Interaction effects are included in lme4-style formulas via the `:` sign (e.g. `outcome ~ factor1:factor2`). If you include `factor1:factor2` in your model formula, lme4 will explicitly only estimate the interaction term in your model, but not the main effects. To include both the main and interaction effects, you would need to write `outcome ~ factor1 + factor2 + factor1:factor2`. 
 
-lme4-style formulas also offer a shortcut for writing both the main and interaction effect. If you write e.g. `outcome ~ factor1*factor2`, lme4 will automatically parse the formula to `outcome ~ factor1 + factor2 + factor1:factor2`. If you want to include a factor that is not part of the interaction, you can simply add it by using `+`, e.g. `outcome ~ factor1*factor2 + factor3`.
+Fortunately, lme4-style formulas also offer a shortcut for adding the main and interaction effect. If you write `outcome ~ factor1*factor2`, lme4 will automatically parse the formula to `outcome ~ factor1 + factor2 + factor1:factor2`. If you want to include a factor that is not part of the interaction, you can simply add it by using `+`, e.g. `outcome ~ factor1*factor2 + factor3`.
 
 #### Random effects in lme4-formulas
 
-In lme4-style formulas, random effects are always enclosed in parentheses and simply added to the formula via a `+`-sign. What is special about the random effects in lme4-style formulas is the `|`-operator. In easy terms, you can think of the parameters on the right side of the `|` as the random intercepts you want to specify, and the parameters on the left hand side of the `|` as the random slopes. If you only want to include a random intercept in your formula, you would write `(1 | factor2)`. You can also specify multiple random intercepts by adding more than one random effects term, e.g. `(1 | factor2) + (1 | factor3)`. 
+In lme4-style formulas, random effects are always enclosed in parentheses and simply added to the formula via a `+`-sign, usually at the end. What is special about the random effects in lme4-style formulas is the `|`-operator. You can think of the parameters on the right side of the `|` as the random intercepts you want to specify, and the parameters on the left hand side of the `|` as the random slopes. If you only want to include a random intercept in your formula, you would write `(1 | factor2)`. You can also specify multiple random intercepts by adding more than one random effects term, e.g. `(1 | factor2) + (1 | factor3)`. 
 
 In cases where one factor is nested within another one, i.e. each sub-group belongs exclusively to a single parent group (e.g. classes within schools), you can use `/` to specify such a relationship. For example, if you specify `(1 | factor1/factor2)` as your random effects structure, it would be interpreted such that `factor2` would be considered to be nested within `factor1`.
 
-Parameters that should be treated as having random slopes are specified on the left-hand side of the `|`-operator. For example, `(factor1 | factor2)` is read such that `factor2` is treated as a random intercept, and `factor1` is treated as having a random slope, and is correlated with `factor2`. If you wish to signify that the random slope should be treated as uncorrelated with the random intercept, this would be specified by using `||` instead of `|`, e.g. `(factor1 || factor2)`.
+Parameters that should be treated as having random slopes are specified on the left-hand side of the `|`-operator. For example, `(factor1 | factor2)` is read such that `factor2` is treated as a random intercept, and `factor1` is treated as having a random slope, and is correlated with `factor2`. If you add a random slope term, another important aspect is that the random slope effect of the specified factor is estimated for each analysis unit specified as the random intercept term in the same parentheses. E.g. in the term `(factor1 | factor2)` the random slope effect for `factor1` is estimated for each analysis unit within `factor2`. If you wish to signify that the random slope should be treated as uncorrelated with the random intercept, this would be specified by using `||` instead of `|`, e.g. `(factor1 || factor2)` (this does not change the fact that the random slope effect is estimated for each analysis unit of the specified random intercept effect).
 
 ### Step 3: Specifying the Hypothesized Effects
 
-This is the most critical part of your power analysis. You need to define the effect sizes (i.e. the regression coefficients in the case of (G)LMMs) which you expect in your study. Ideally, you can use existing research to guide the decision-making process for finding appropriate effect sizes. If you cannot base your effect sizes on previous research, it should be solidly grounded in theory. In any case, the chosen effect sizes for which you run your power analyses should always be appropriately justified. For more details, refer to @samplesize or @equivalence.
+This is the most critical part of your power analysis. You need to define the fixed effect sizes (i.e. the regression coefficients in the case of (G)LMMs) as well as the magnitude of the random effect components (if you plan to use a mixed effects model) you expect in your study. Ideally, you can use existing research to guide the decision-making process for finding appropriate effect sizes. If you cannot base your effect sizes on previous research, it should at least be solidly grounded in theory. In any case, the chosen effect sizes for which you run your power analyses should always be appropriately justified. For more details, refer to @samplesize or @equivalence.
 
-You could, however, also simulate however many effect sizes you like in a more iterative process. In fact, varying the effect sizes can be a good idea to get more robust estimates and a general feel for your simulated data. In order to correctly simulate the data and, more importantly, fit the model, the names of the coefficients you plug into `PowRPriori` need to be specified exactly as the model fitting engine (`lme4` in the current release version of this package) expects them. `PowRPriori` makes this process easy, and gives you two options to accomplish it.
+You could also simulate however many effect sizes you like in a more iterative process. Varying the effect sizes can be a good idea to get even more robust estimates and a better general feel for your simulated data. 
 
-First, if you already know the values of the coefficients, you can use the `get_fixed_effects_structure` helper function to let `PowRPriori` automatically print a ready-to-use code snippet to the console containing all correctly named coefficients. This output is already structured so that `PowRPriori` understands it. The values themselves are left as placeholders (`...`), so all you need to do is fill them with values. Second, if you do not know the values of the coefficients, `PowRPriori` also allows you to think in terms of expected mean outcomes and calculates the necessary coefficients for you. Let's go through both scenarios.
+In order to correctly simulate the data and, more importantly, fit the model, the names of the fixed and random effects you plug into `PowRPriori` need to be specified exactly as the model fitting engine (`lme4` in the current release version of this package) expects them. `PowRPriori` makes this process easy by providing useful helper functions.
+
+Let's start with defining the fixed effects. Generally, you have two options here.
+
+First, if you already know the values of the coefficients, you can use the `get_fixed_effects_structure` helper function to let `PowRPriori` automatically print a ready-to-use code snippet to the console containing all correctly named coefficients. The output of this function is already structured so that `PowRPriori` understands it. The values themselves are printed as placeholders (`...`), so all you need to do is fill them with values. Second, if you do not know the values of the coefficients, `PowRPriori` also allows you to think in terms of expected mean outcomes and calculates the necessary coefficients for you. Let's go through both scenarios.
 
 ##### Scenario A: You do not know the values of the coefficients
 
-Let's start with the case where you do not know the values of the coefficients, but can estimate reasonable values for the mean outcome scores in each condition.
+Let's start with the case where you do not know the values of the coefficients, but can estimate reasonable values for the mean outcome scores in each condition of your study.
 
-For now, let's also assume the memory score is on a 100-point scale and hypothesize the following mean scores for each condition:
+For now, let's assume the memory score is on a 100-point scale and hypothesize the following mean scores for each condition:
 
 -The **Control** group starts at 50 and improves slightly to 52 (a small practice effect).
 
 -The **Treatment** group also starts at 50 but improves significantly to 60 due to the intervention.
 
-You first need to create a data frame containing these expected means, which you then provide to the `PowRPRiori`-function that calculates the regression coefficients from them. Importantly, ensure the order of levels in your data frame matches the factor level order.
+You first need to create a data frame containing these expected means, which you then provide to the `PowRPRiori`-function that calculates the regression coefficients from them. It is recommended to create the data frame with a helper function in R, such as `expand_grid` of the `tidyr` package. While the complexity of this data frame is low for simple research designs, more complex designs can quickly lead to a more complicated sequence of research conditions. Using a helper function decreases the chance of wrongly defining the data frame. But, at the end of the day, the data frame can also be defined manually. The important part is that all conditions present in the study are also appropriately specified in the data frame.
 
+For the 2x2 design of the example, generating the necessary data frame for the `fixed_effects_from_average_outcome()` function could look as follows: 
 ```{r specify-means}
 expected_means <- tidyr::expand_grid(
   group = c("Control", "Treatment"),
@@ -143,9 +147,9 @@ expected_means$mean_score <- c(50, 52, 50, 60)
 
 knitr::kable(expected_means, caption = "Expected Mean Scores for Each Condition")
 ```
-In more complex examples, the sequence of the means might not be as straightforward as in this case. In such cases you can look at the resulting data frame created by `expand_grid` to see the generated sequence of conditions. The sequence of the mean values in your vector (`expected_means$mean_score <- c(50, 52, 50, 60)` above) needs to correspond correctly to the conditions in your `expected_means` data frame.
+In more complex cases, you should always inspect the resulting data frame created by `expand_grid` to see the generated sequence of conditions. The sequence of the mean values in your vector (`expected_means$mean_score <- c(50, 52, 50, 60)` above) needs to match this sequence of conditions in your `expected_means` data frame.
 
-Now that you have the data frame containing the expected mean outcomes, you can use the helper function `fixed_effects_from_average_outcome()` to translate these intuitive means into the regression coefficients your model needs.
+Now that you have the data frame containing the expected mean outcomes, you can use the helper function `fixed_effects_from_average_outcome()` to translate these (probably more intuitive) means into the regression coefficients your model needs. If you use the `fixed_effects_from_average_outcome()` function, you can directly use the object created by this function as your input for the fixed effects later in your power analysis. 
 
 ```{r get-fixed-effects}
 my_fixed_effects <- fixed_effects_from_average_outcome(
@@ -157,17 +161,18 @@ my_fixed_effects <- fixed_effects_from_average_outcome(
 # Do not change these names!
 print(my_fixed_effects)
 ```
+Note: Per default, the `fixed_effects_from_average_outcome` function is configured to treat the specified predictors as mean-centered, and applies effect coding to them. You can read more in the help file for the function.
 
 ##### Scenario B: You already know the values of the coefficients
 
-Let's now look at a scenario where you already know the values of the coefficients. Other than in the former scenario, the assumption here is that you already knew (or could estimate) the regression coefficient values produced by the `fixed_effects_from_average_outcome` function beforehand. In this case, you can use the `get_fixed_effects_structure` helper function to generate a code snippet where you only need to plug in the regression coefficients. `get_fixed_effects_structure` uses the formula of your model in combination with your `PowRPriori_design`-object (`my_design` from above) to generate the code snippet:
+Let's now look at a scenario where you already know the values of the coefficients. Other than in the former scenario, the assumption here is that you already knew (or could directly estimate) the regression coefficients produced by the `fixed_effects_from_average_outcome` function beforehand. In this case, you can use the `get_fixed_effects_structure` helper function to generate a code snippet where you only need to plug in the regression coefficients. `get_fixed_effects_structure` uses the formula of your model in combination with your `PowRPriori_design`-object (`my_design` from above) to generate the code snippet:
 
 ```{r get fixed effects structure}
 get_fixed_effects_structure(formula = my_formula, design = my_design)
 
 ```
 
-Now we can fill in the values:
+Now you can fill in the values:
 ```{r}
 my_fixed_effects <- list(
    `(Intercept)` = 50,
@@ -177,14 +182,28 @@ my_fixed_effects <- list(
 )
 ```
 
+#### Centering of Predictors
+Predictor centering is another crucial topic when working with (G)LMMs. This is a technique where the mean of a predictor is subtracted from an individual's value of the predictor. For example, if the mean of a continuous predictor in your sample is 50, this mean value of 50 would be subtracted from each individual's value of that predictor (so that e.g. 84 becomes 34). Importantly, this works just as well for something like categorical predictors. 
+
+Generally, you have two choices when applying mean centering in multilevel models: grand-mean centering or within-cluster centering (sometimes also called person-mean or group-mean centering). To illustrate the difference, imagine a study where you measure pupils nested within school classes:
+
+-When using grand-mean centering, you calculate the overall mean of all pupils across all classes and subtract the resulting mean from each individual pupil's score.
+
+-When using within-cluster centering, you calculate the specific mean of each individual class and subtract it from the scores of the pupils within that specific class. 
+
+If and how you center the predictors in your model has important ramifications for the estimation and interpretation of your model parameters. When analyzing interaction terms, mean centering is often highly recommended to make the main effects interpretable and to reduce multicollinearity. Additionally, appropriate centering is necessary to correctly disaggregate between-cluster and within-cluster components of your fixed effects. 
+
+If you set `center = TRUE` in the `fixed_effects_from_average_outcome()` function (which is the default setting), the package will automatically choose and apply an appropriate centering method under the hood when you plug the results of the function into the `power_sim` function later on: Between-subject variables will be grand-mean centered, and within-subject variables will be centered on the mean of each corresponding member of the cluster (see @centering1 if you are interested in why `PowRPriori` handles it this way). The intercept of the resulting fixed effects will then represent the overall grand mean. The `power_sim()` function used to conduct the data simulation has a `center = "auto"` default parameter. If you use the `fixed_effects_from_average_outcome()` function, the simulation engine will automatically detect if your fixed effects were generated with centering enabled and then seamlessly apply the exact same centering to all simulated data sets during the power analysis.
+
+Note for manual input: If you bypass the `fixed_effects_from_average_outcome()` function and provide a manual list of fixed_effects (e.g. by using `get_fixed_effects_structure`) for a model containing interactions, PowRPriori will deliberately throw an error and ask you to explicitly set the center parameter in power_sim(). This is a safety mechanism to ensure your simulated data matches the mathematical scaling of your provided regression weights.
 
 ### Step 4: Specifying the Random Effects
 
-You also need to define the values of the random effects structure (i.e. the variance components) in your model. Again, ideally, you have some sort of guide for the specific values of these. The goal should always be to supply plausible, realistic values here, guided by e.g. pre-existing (optimally from an independent sample) data or at the very least solid theoretical considerations.
+You also need to define the values of the random effects structure (i.e. the variance components) in your model. Again, ideally you have some sort of guide for the specific values of these. The goal should always be to supply plausible, realistic values here, guided by e.g. pre-existing (optimally from an independent sample) data or at the very least solid theoretical considerations.
 
-The random effects in your model can influence the fitting process considerably when using mixed effects models, especially in more complex scenarios. This means that you'll need to strike a balance between using realistic values and tweaking them so that the model can be fit in the first place. Fortunately, `PowRPriori` lets you know if the model fitting process encounters problems during the simulation.
+The random effects in your model can influence the fitting process considerably when using mixed effects models, especially in more complex scenarios. This means that you'll need to strike a balance between using realistic values and tweaking them so that the model can be fit in the first place. `PowRPriori` lets you know if the model fitting process encounters problems during the simulation to support you here. Try not to be discouraged when trying to estimate plausible values here, this is indeed a rather difficult process. It needn't necessarily be the perfect values, if the values are somewhat plausible, it will already be a great improvement for your power analysis than not trying to estimate these values at all.
 
-For now, let's assume the standard deviation of your subjects' baseline scores (the random intercept) is 8 points, and the residual standard deviation (random noise) unexplained by your model is 12 points.
+For now, let's assume the standard deviation of your subjects' baseline scores is 8 points, and the residual standard deviation (random noise) unexplained by your model is 12 points.
 
 You can use `get_random_effects_structure()` to get a template very similar to what `get_fixed_effects_structure()` provides.
 
@@ -206,13 +225,20 @@ my_random_effects <- list(
 
 ### Step 5: Run the Simulation
 
-You now have all the ingredients to run a proper power simulation! The function for this, which can be considered the heart of the package, is `power_sim`.
+You now have all the ingredients to run a proper power simulation! The function to finally start your simulation is `power_sim`.
 
 Let's say you want to find the sample size needed to achieve 80% power (determined by the `power_crit` parameter) at an alpha level of 5% (determined by the `alpha` parameter) for your key hypothesis: Your memory training program leads to an increase in memory scores in individuals who receive the training compared to individuals who do not. This hypothesis is represented by the `groupTreatment:timepost` interaction in your model. You can tell `power_sim` to test this effect by supplying it to the `test_parameter` parameter.
 
-An important note though: the 80% power and 5% alpha level are merely conventions - they can be used, but should not be considered set in stone. Depending on the context, you might also want to adjust these.
+**Testing Multiple Parameters and p-value Adjustment:**
+In the example, you most likely only want to test the interaction term. However, you can also test multiple effects simultaneously by passing a vector of names, e.g., `test_parameter = c("groupTreatment", "timepost", "groupTreatment:timepost")`. If `test_parameter` is left at its default (`NULL`), `PowRPriori` will automatically calculate the power for *all* fixed effects (except the intercept). 
 
-Let's start the simulation with a sample size of N=30 (determined by the `n_start` parameter) and increase it in steps of 10 after each unsuccessful (i.e. not resulting in the power being above your desired power value) simulation run (determined by the `n_increment` parameter). The example here uses a fairly low number of simulated data sets for each sample size (determined by the `n_sims` parameter) - in real simulations, you should use a much larger number (at least 1000, default for the `power_sim` function is 2000). Again, the 1000 simulations are not set in stone and shouldn't be considered anything else than a rough rule of thumb, the number is merely used to illustrate what might be considered a large enough number. A low number of simulations increases the risk of "bad draws" (random samples that are not representative / outliers for the simulated population) influencing the results of the power analysis to a high degree and should thus be avoided. 
+Since testing multiple parameters in the same model increases the risk of Type I errors (false positives), `PowRPriori` automatically adjusts the p-values during the simulation. By default, the `adjust_p_value` parameter is set to `"BH"` (Benjamini-Hochberg procedure). You can change this to any adjustment method supported by R's standard `p.adjust()` function (e.g., `"bonferroni"`), or disable it entirely by setting `adjust_p_value = FALSE`, though the latter is generally discouraged when looking at multiple effects.
+
+Another important note: the 80% power and 5% alpha level are merely conventions - they can be used, but should not be considered set in stone. Depending on the context, you might also want to adjust these.
+
+By default, the simulation automatically increments the lowest level of analysis you specified in the `sample_size` parameter of `define_design` (in the case of this example: `subject`). Because you already specified `subject = 30` in the `define_design` step, the simulation will automatically start with 30 subjects. The variable incremented in the simulation can be determined via the `along` parameter, and the sample size the simulation starts with can be set via the `n_start` parameter, if you should desire a different starting value than specified in the `define_design` function for any reason. 
+
+The number of subjects is increased in steps of 10 (determined by the `n_increment` parameter) after each unsuccessful simulation run (i.e. where the achieved power is below your desired power value). The example here uses a fairly low number of simulated data sets for each sample size, as determined by the `n_sims` parameter. In simulations used to actually estimate the needed sample size for your study, you should use a much larger number (at least 1000, default for the `power_sim` function is 2000). Again, the 1000 simulations are not set in stone and shouldn't be considered anything else than a rule of thumb, the number is merely used to illustrate what might be considered a large enough number. A low number of simulations increases the risk of "bad draws" (random samples that are not representative / outliers for the simulated population), influencing the results of the power analysis to a high degree and should thus be avoided. 
 
 ```{r run-simulation, eval=FALSE}
 # NOTE: This function can take a few minutes to run, depending on model complexity.
@@ -223,7 +249,7 @@ power_results <- power_sim(
   fixed_effects = my_fixed_effects,
   random_effects = my_random_effects,
   test_parameter = "groupTreatment:timepost",
-  n_start = 30,
+  along = "subject",
   n_increment = 10,
   n_sims = 200, # Use >= 1000 for real analysis
   power_crit = 0.80,
@@ -232,11 +258,9 @@ power_results <- power_sim(
 )
 ```
 
-A note: Keep the `n_is_total` parameter in mind. It controls whether your initial sample size specified with `n_start` is interpreted as the overall sample size across all potential between-subject variables or as the sample size in each cell of the between-subject variables.
-
 ### Step 6: Interpret and Visualize the Results
 
-After the simulation is complete, you can inspect the results object in different ways.
+After the simulation is complete, you can inspect the object generated by `power_sim` in different ways.
 
 ```{r load-results, include=FALSE, eval=TRUE}
 # This hidden code block loads the pre-computed results
@@ -247,9 +271,9 @@ power_results <- readRDS(
 
 #### The Summary Table
 
-The `summary()` function provides a detailed overview of the simulation, including the power table and a check of the parameter recovery (i.e. a check how well the simulation was able to simulate the parameters you specified, with bias values representing deviations from your specified parameters). The parameter recovery largely serves to confirm that the simulation ran as expected and that the generated data is plausible. 
+The `summary()` function provides a detailed overview of the simulation, including the power table and a check of the parameter recovery (i.e. a check how well the simulation was able to simulate the parameters you specified, with bias values representing deviations from your specified parameters). The parameter recovery serves to confirm that the simulation ran as expected and that the generated data is plausible. 
 
-In the parameter recovery tables, you will find columns specifying the `True Value` column, i.e. the parameter estimates you plugged into the simulation, the `Avg_Estimated` column, i.e. the average estimates of the `n_sims` models that were simulated in the last simulation run, and the `Bias` column, which represents the deviations of the estimated parameters from the "true" parameter values you used for the simulation.
+In the parameter recovery tables, you will find columns specifying the `True Value`, i.e. the parameter estimates you plugged into the simulation, the `Avg_Estimated`, i.e. the average estimates of the `n_sims` models that were simulated in the last simulation run, and the `Bias`, which represents the deviations of the estimated parameters from the "true" parameter values you used for the simulation.
 
 Small biases indicate that the simulation could accurately simulate the data with your specified parameters. In these cases, the power analysis can be considered robust for your specified effect sized. Large biases, on the other hand, indicate that the simulation had trouble to accurately simulate the data with your specified parameters. This hampers the robustness of your power analysis, since you technically conducted your power analysis for a model with different effect sizes than the one you specified. Additionally, your model could potentially be implausible (at least with the specific parameters you chose), so it is definitely encouraged to reevaluate your parameters in such cases.
 
@@ -257,7 +281,7 @@ Small biases indicate that the simulation could accurately simulate the data wit
 summary(power_results)
 ```
 
-From this table, you can see that you'll need approximately **N=120 subjects** (in the `subject` column in the first table after the Formula) to reach your desired 80% power at an alpha level of 5%. Also, you can see that your model had some singular fits, especially at smaller sample sizes. Sometimes, singular fits can happen by chance. If they happen frequently, it can be an indicator that your model specifications might be problematic. Right now, I won't delve further into this topic, but investigating your random effects parameters is useful in such cases. 
+From this table, you can see that you'll need approximately **N=140 subjects** (in the `subject` column in the first table after the Formula) to reach your desired 80% power at an alpha level of 5%. Also, you can see that your model had some singular fits, especially at smaller sample sizes. Sometimes, singular fits simply happen by chance. If they happen frequently, it can be an indicator that your model specifications might be problematic. Right now, I won't delve further into this topic, but investigating your random effects parameters is useful in such cases. 
 
 #### The Power Curve
 
@@ -271,19 +295,22 @@ This plot visually confirms your findings from the table.
 
 #### Plotting sample data
 
-Another useful thing to investigate is whether the data your simulation generated looks plausible or conforms to your initial intentions. To investigate this, you can call the `plot_sim_model` function by supplying the `PowRPriori`-object which `power_sim` generated to it and setting the `type`-parameter to`"data"`. This plots sample data from the last simulation run that `power_sim()` conducted.
+Another useful thing to investigate is whether the data your simulation generated looks plausible or conforms to your initial intentions in a graph. To investigate this, you can call the `plot_sim_model` function by supplying the `PowRPriori`-object which `power_sim` generated to it and setting the `type`-parameter to`"data"`. This plots sample data from the last simulation run that `power_sim()` conducted.
 
 ```{r, fig.width=6, fig.height=4, fig.dpi=600, out.width="600px", out.height="400px"}
 plot_sim_model(power_results, type = "data")
 ```
 
-The `plot_sim_model` function also works prior to starting your simulation with `power_sim`. This way, you can check the plausibility of your simulated data before doing the actual power analysis is conducted, allowing you to potentially adjust model parameters if the generated data doesn't behave the way you intended. This can be done by supplying an `lme4`-style formula to the function, in addition to other parameters required to generate a single simulated data set, i.e. a `PowRPriori_design` object, a `fixed_effects` list, a `random_effects` list, and `n` for the total sample size to simulate for the plot. Naturally, you can generate objects for the fixed and random effects via the helper functions detailed in the previous sections.
+The `plot_sim_model` function also works prior to starting your simulation with `power_sim`. This way, you can check the plausibility of your simulated data before doing the actual power analysis, allowing you to potentially adjust model parameters if the generated data doesn't behave the way you intended. This can be done by supplying an `lme4`-style formula to the function, in addition to other parameters required to generate a single simulated data set, i.e. a `PowRPriori_design` object, a `fixed_effects` list, a `random_effects` list, and optionally `n` to overwrite the initial sample size to simulate for the plot. Naturally, you can generate objects for the fixed and random effects via the helper functions detailed in the previous sections.
 
 Thus, plotting data prior to calling `power_sim()`, using the same model parameters as in the previous examples, would look something like this:
 ```{r prepare plot data by lme formula}
-plot_design <- define_design(id = "subject", 
-                             between = list(group = c("Control", "Intervention")),
-                             within = list(measurement = c("Pre", "Post")))
+plot_design <- define_design(
+  sample_size = list(subject = 30), 
+  between = list(group = c("Control", "Intervention")),
+  within = list(measurement = c("Pre", "Post"))
+)
+
 plot_formula <- y ~ group*measurement + (1|subject)
 
 get_fixed_effects_structure(plot_formula, plot_design)
@@ -303,9 +330,6 @@ plot_random_effects <- list(
   ),
   sd_resid = 12
 )
-# For this simulation, you might decide that you want to see what the 
-# data looks like for 30 Participants
-n_Participants = 30
 ```
 
 ```{r plot data by lme, fig.width=6, fig.height=4, fig.dpi=600, out.width="600px", out.height="400px"}
@@ -313,8 +337,7 @@ plot_sim_model(plot_formula,
                type="data", 
                design = plot_design, 
                fixed_effects = plot_fixed_effects, 
-               random_effects = plot_random_effects, 
-               n = n_Participants)
+               random_effects = plot_random_effects)
 ```
 
 
@@ -324,21 +347,20 @@ The `PowRPriori` workflow is flexible. Here are brief examples for other possibl
 
 ### Use Case 1: A Cluster-Randomized Trial
 
-With `PowRPriori`, you can also define nested designs. 
-For example, you could design your study so that the intervention is applied to whole classes, not individual pupils. You can utilize the hierarchical structure in `define_design` to specify this, using the `nesting_vars` parameter. This parameter is used to a) specify which variable should be treated as the top-level variable in your design and b) define how many instances of this variable should be generated in your data.
+With `PowRPriori`, you can easily define nested or hierarchical designs without needing complex parameters. 
+For example, you could design your study so that the intervention is applied to whole classes, not individual pupils. You can establish this hierarchical structure simply by expanding your `sample_size` list and assigning the treatment to the higher-level cluster in your `between` argument.
 
-In a scenario where the intervention is applied at class level, this means that if a class is in the intervention group, every pupil in the respective class is also in the intervention group. 
+In a scenario where the intervention is applied at the class level, this means that if a class is in the intervention group, every pupil in the respective class is automatically in the intervention group as well. 
 
 ```{r cluster-design 1}
 cluster_design <- define_design(
-  id = "pupil",
-  nesting_vars = list(class = 1:20), # 20 classes
+  sample_size = list(class = 20, pupil = 20),
   between = list(
-    # Intervention at class level, with "pupil" nested in classes
+    # Intervention is assigned at the class level
     class = list(intervention = c("yes", "no")) 
   ),
   within = list(
-    time = c("pre", "post")
+    pupil = list(time = c("pre", "post"))
   )
 )
 ```
@@ -348,21 +370,19 @@ The rest of the workflow (specifying effects, running power_sim) would follow th
 
 ### Use Case 2: Crossed Designs
 
-You can also define crossed designs with `PowRPriori`. For example, it is common to have subjects respond to multiple items of a survey / questionnaire and to model the subjects as well as the items to have a random intercept. In PowRPriori, you define something like items as a within-factor, because they represent repeated measures for each subject.
+You can also define crossed designs with `PowRPriori`. For example, it is common to have subjects respond to multiple items of a survey / questionnaire and to model the subjects as well as the items to have a random intercept. In `PowRPriori`, you don't need to specify items as a repeated measure within a subject. Instead, you treat both subjects and items as crossed dimensions of your overall sample size.
 
 ```{r crossed design}
 item_design <- define_design(
-  # You sample subjects
-  id = "subject",
+  sample_size = list(subject = 50, item = 20),
   between = list(
-    condition = c("A", "B")
-  ),
-  within = list(
-    # Each subject sees 20 items
-    item = paste0("item_", 1:20)  
+    subject = list(
+      condition = c("A", "B")
+    )
   )
 )
 ```
+Note: For a crossed design like this, you need to explicitly specify which analysis unit a given between-variable belongs to. Since subjects and items are independent dimensions, the data grid consists of every possible subject-item combination. If you do not tie the condition explicitly to the subject level, the package assumes it is a trial-level variable and will randomly assign 'A' or 'B' to every single response. Specifying it at the subject level ensures a true between-subject factor. (Within-variables, on the other hand, do not need to be assigned to a specific level; they are automatically crossed with every single subject-item combination.)
 
 Then, you would define the model formula as is usual for crossed designs in `lme4`:
 
@@ -374,13 +394,15 @@ Again, the rest of the workflow would be the same as detailed above.
 
 ### Use Case 3: Generalized linear mixed models (GLMMs)
 
-If your outcome is binary (e.g., pass/fail) or count data, you can specify `family = "binomial"` or `family = "poisson"` for the `get_fixed_effects_structure()`, `get_random_effects_structure()`, `fixed_effects_from_average_outcome()` and `power_sim()` functions, respectively. Thus, all helper functions also work for logistic and poisson regression models. For `family = "binomial"`, you would specify the expected outcomes as mean **probabilities** (between 0 and 1) in the data frame you supply to the `fixed_effects_from_average_outcome` function, whereas for `family = "poisson"`, non-negative mean counts would be supplied. It is noteworthy that using `fixed_effects_from_average_outcome()` is recommended when working with binomial or poisson models, since the specification of the fixed effects regression weights is not trivial in these cases.  
+If your outcome is binary (e.g., pass/fail) or count data, you can specify `family = "binomial"` or `family = "poisson"` in the `get_fixed_effects_structure()`, `get_random_effects_structure()`, `fixed_effects_from_average_outcome()` and `power_sim()` functions, respectively. Thus, all helper functions also work for logistic and poisson regression models. For `family = "binomial"`, you would specify the expected outcomes as mean **probabilities** (between 0 and 1) in the data frame you supply to the `fixed_effects_from_average_outcome` function, whereas for `family = "poisson"`, non-negative mean counts would be supplied. It is highly recommended to use `fixed_effects_from_average_outcome()` when working with binomial or poisson models. Specifying regression weights for these model types manually is extremely unintuitive, since they are in log-odds or log-rates. By supplying expected probabilities (e.g., 0.80 for an 80% pass rate) to `fixed_effects_from_average_outcome()`, `PowRPriori` automatically performs the necessary logit-transformations under the hood, ensuring your simulation is mathematically sound while keeping your input intuitive.  
 
-Here is an example for a case of binomial data:
+Here is an example for binomial data:
 ```{r glmm-example}
-glmm_design <- define_design(id = "subject",
-                             between = list(group = c("Control", "Treatment")),
-                             within = list(time = c("pre", "post", "follow-up")))
+glmm_design <- define_design(
+  sample_size = list(subject = 30),
+  between = list(group = c("Control", "Treatment")),
+  within = list(time = c("pre", "post", "follow-up"))
+)
 
 glmm_formula <- passed ~ group * time + (1|subject)
 
@@ -415,17 +437,17 @@ glmm_random_effects <- list(
 
 ### Use Case 4: Using Intraclass Coefficients for the Random Effects Structure
 
-Alternatively to specifying the random effects directly, `PowRPriori` also allows you to do this via Intraclass-Coefficients (ICCs), as long as your model only includes random intercepts. This changes the function call to `power_sim` slightly. When using Intraclass-Coefficients, the `random_effects`-parameter is omitted and the `icc_specs` in combination with the `overall_variance`-parameter is used. Thus, you need to specify the Intraclass-Coefficients for all random intercepts in your model as well as the overall variance expected in the data. Since you don't need to specify the `random_effects`-parameter in these cases, there is also no use for the `get_random_effects_structure()`-function here. 
+Alternatively to specifying the random effects directly, `PowRPriori` also allows you to specify random effects via Intraclass-Coefficients (ICCs), as long as your model only includes random intercepts. This changes the function call to `power_sim` slightly. When using Intraclass-Coefficients, the `random_effects`-parameter is omitted and the `icc_specs` in combination with the `overall_variance`-parameter is used. In this case, you need to specify the Intraclass-Coefficients for all random intercepts in your model as well as the overall variance expected in the data. Since you don't need to specify the `random_effects`-parameter in these cases, there is also no use for the `get_random_effects_structure()`-function here. 
 
 Here is a brief example of the workflow using Intraclass-Coefficients:
 ```{r ICC example, eval=FALSE}
 my_icc_design <- define_design(
-  id = "subject",
+  sample_size = list(subject = 30),
   between = list(group = c("Control", "Treatment")),
   within = list(time = c("pre", "post"))
 )
 
-#Note: Only random intercept models work with the ICC specification
+#Only random intercept models work with the ICC specification
 my_icc_formula <- score ~ group * time + (1 | subject)
 
 get_fixed_effects_structure(formula = my_icc_formula, design = my_icc_design)
@@ -437,7 +459,7 @@ my_icc_fixed_effects <- list(
    `groupTreatment:timepost` = 8
 )
 
-#The values are defined so they mirror the random effects structure from the detailed example above
+#The values are defined so they mirror the random effects structure from the detailed example above. ICCs need to always be specified as lists as well.
 iccs <- list(`subject` = 0.4)
 overall_var <- 20
 
@@ -448,7 +470,6 @@ power_results <- power_sim(
   icc_specs = iccs,
   overall_variance = overall_var,
   test_parameter = "groupTreatment:timepost",
-  n_start = 30,
   n_increment = 10,
   n_sims = 200, 
   power_crit = 0.80,

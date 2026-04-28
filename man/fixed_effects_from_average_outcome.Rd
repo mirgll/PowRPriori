@@ -4,13 +4,23 @@
 \alias{fixed_effects_from_average_outcome}
 \title{Calculate Fixed-Effects Coefficients from Mean Outcomes}
 \usage{
-fixed_effects_from_average_outcome(formula, outcome, family = "gaussian")
+fixed_effects_from_average_outcome(
+  formula,
+  outcome,
+  center = TRUE,
+  family = "gaussian"
+)
 }
 \arguments{
 \item{formula}{The fixed-effects part of the model formula (e.g., \code{y ~ group * time}).}
 
 \item{outcome}{A data frame containing columns for all predictor variables and
 exactly one column for the expected outcome values.}
+
+\item{center}{If \code{TRUE} (default), predictors in the design grid are
+effect-coded (i.e. the contrast coding is changed so that they are treated as being centered) to yield a grand-mean intercept.
+Additionally, the output is flagged to instruct \code{power_sim()} to automatically center the simulated data.
+If set to \code{FALSE}, the predictors are treated as not centered and no alterations to the contrast coding are applied.}
 
 \item{family}{The model family (\code{"gaussian"}, \code{"binomial"}, \code{"poisson"}).
 The outcome values should be means for gaussian, probabilities (0-1) for
@@ -25,6 +35,22 @@ A user-friendly helper function to translate expected outcomes (e.g., cell
 means, probabilities, or rates) into the regression coefficients required
 by the simulation. This is often more intuitive than specifying coefficients directly.
 }
+\details{
+By default, this function applies effect coding (orthogonal contrasts) to the
+predictors in your design (\code{center = TRUE}). Because the predictors are
+treated as being mean-centered this way, the intercept of the calculated
+coefficients represents the grand mean of your specified outcomes.
+
+Importantly, setting \code{center = TRUE} also adds an attribute to the resulting
+coefficient list. When the coefficients are later passed to \code{power_sim()},
+the simulation engine will detect this attribute and automatically apply the corresponding
+mean-centering to the generated sample data (grand-mean centering for between-subject
+variables, and within-cluster / person-mean centering for within-subject variables).
+
+The choices for these respective centering techniques have been made to ensure the most robust
+fixed / random effects and power estimates. For more details on the issue of centering, refer to the vignette:
+\code{vignette("Workflow-Example", package = "PowRPriori")}
+}
 \examples{
 outcome_means <- tidyr::expand_grid(
   group = c("Control", "Treatment"),
@@ -32,6 +58,7 @@ outcome_means <- tidyr::expand_grid(
 )
 outcome_means$mean <- c(10, 10, 12, 15) # Specify expected means
 
+#Per default, the predictors are effect-coded (centered) here
 fixed_effects_from_average_outcome(
   formula = score ~ group * time,
   outcome = outcome_means

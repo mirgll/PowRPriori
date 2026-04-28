@@ -22,6 +22,7 @@
 #' @param design A `PowRPriori_design` object.
 #' @param fixed_effects,random_effects Lists of effect parameters.
 #' @param family The model family. Defaults to `"gaussian"`, other possible values are `"binomial"` or `"poisson"`.
+#' @param center Controls if centering is applied to the predictors prior to plotting. Defaults to `"auto"`.
 #' @param n The sample size to simulate.
 #' @param x_var,group_var,color_var,facet_var Strings specifying variables for plot aesthetics.
 #' @param n_data_points The maximum number of trajectories in spaghetti plots.
@@ -32,7 +33,7 @@
 #' @examples
 #' # 1. Plot prior to simulation to check data plausibility
 #' design <- define_design(
-#'   id = "subject",
+#'   sample_size = list(subject = 30),
 #'   between = list(group = c("Control", "Treatment")),
 #'   within = list(time = c("pre", "post"))
 #' )
@@ -53,8 +54,7 @@
 #'   y ~ group * time + (1|subject),
 #'   design = design,
 #'   fixed_effects = fixed_effects,
-#'   random_effects = random_effects,
-#'   n = 30
+#'   random_effects = random_effects
 #' )
 #' \donttest{
 #' # 2. Plot from PowRPriori object after simulation
@@ -64,6 +64,7 @@
 #'     fixed_effects = fixed_effects,
 #'     random_effects = random_effects,
 #'     test_parameter = "groupTreatment:timepost",
+#'     center = TRUE,
 #'     n_start = 20,
 #'     n_increment = 5,
 #'     n_sims = 100, # Using a smaller n_sims for a quick example
@@ -77,25 +78,59 @@
 #'   plot_sim_model(power_results, type = "data")
 #'}
 plot_sim_model <- function(object, type, design, fixed_effects, random_effects, family,
-                           n, x_var, group_var, color_var, facet_var,
+                           center, n, x_var, group_var, color_var, facet_var,
                            n_data_points, ...) {
   UseMethod("plot_sim_model")
 }
 
-#' @param n The total sample size to simulate for the plot.
+#' @param n The total sample size to simulate for the plot (overwrites the lowest design level).
 #'
 #' @rdname plot_sim_model
 #' @export
 plot_sim_model.formula <- function(object, type = "data", design, fixed_effects, random_effects, family = "gaussian",
-                                   n, x_var = NULL, group_var = NULL,
+                                   center = "auto", n = NULL, x_var = NULL, group_var = NULL,
                                    color_var = NULL, facet_var = NULL,
                                    n_data_points = 10, ...) {
   if(type == "data"){
-    sim_data <- .create_design_matrix(design = design, current_n = n) %>%
-      .simulate_outcome(formula = object, fixed_effects = fixed_effects,
-                        sds_random = random_effects)
 
-    .plot_data(data = sim_data, design = design, formula = object, x_var = x_var, family = family,
+    temp_design <- design
+
+    if (!missing(n) && !is.null(n)) {
+      target_lvl <- names(temp_design$sample_size)[length(temp_design$sample_size)]
+      temp_design$sample_size[[target_lvl]] <- n
+    }
+
+    sim_data <- .create_design_matrix(design = temp_design, formula = object)
+
+    if (identical(center, "auto")) {
+      is_centered_attr <- attr(fixed_effects, "is_centered")
+      if (!is.null(is_centered_attr)) {
+        center <- is_centered_attr
+      } else {
+        center <- FALSE
+      }
+    }
+
+    if (identical(center, "auto")) {
+      is_centered_attr <- attr(fixed_effects, "is_centered")
+
+      if (!is.null(is_centered_attr)) {
+        center <- is_centered_attr
+      } else{
+        hasInteraction <- any(grepl(":", attr(stats::terms(nobars(object)), "term.labels")))
+
+        if(hasInteraction){
+          stop("Your model contains interaction effects and you manually specified your fixed effects without specifying if the predictors should be centered. Since centering changes the interpretation and power of main effects, PowRPriori cannot safely guess your intent. Please explicitly add 'center = TRUE' (recommended if your weights are effect-coded) or 'center = FALSE' (if your weights use dummy-coding) to your power_sim() call.", call. = FALSE)
+        } else {
+          center <- FALSE
+        }
+      }
+    }
+
+    sim_data <- .simulate_outcome(sim_data, formula = object, fixed_effects = fixed_effects,
+                                  sds_random = random_effects, family = family)
+
+    .plot_data(data = sim_data, design = temp_design, formula = object, x_var = x_var, family = family,
                group_var = group_var, color_var = color_var,
                facet_var = facet_var, n_data_points = n_data_points)
   } else {
@@ -113,7 +148,7 @@ plot_sim_model.formula <- function(object, type = "data", design, fixed_effects,
 #' @rdname plot_sim_model
 #' @export
 plot_sim_model.PowRPriori <- function(object, type = "power_curve", design = NULL, fixed_effects = NULL,
-                                      random_effects = NULL, family = NULL, n = NULL,
+                                      random_effects = NULL, family = NULL, center = NULL, n = NULL,
                                       x_var = NULL, group_var = NULL,
                                       color_var = NULL, facet_var = NULL,
                                       n_data_points = 10, ...) {
@@ -123,8 +158,8 @@ plot_sim_model.PowRPriori <- function(object, type = "power_curve", design = NUL
 
     plot_data_long <- power_data %>%
       tidyr::pivot_longer(cols = tidyselect::starts_with(c("power", "ci_lower", "ci_upper")),
-                   names_pattern = "(power|ci_lower|ci_upper)_(.*)",
-                   names_to = c(".value", "parameter"))
+                          names_pattern = "(power|ci_lower|ci_upper)_(.*)",
+                          names_to = c(".value", "parameter"))
 
     dodge <- ggplot2::position_dodge(width = ifelse(length(unique(plot_data_long$parameter))>1, 0.8, 0))
     p <- ggplot2::ggplot(plot_data_long,
@@ -169,9 +204,11 @@ plot_sim_model.PowRPriori <- function(object, type = "power_curve", design = NUL
 .plot_data <- function(data, design, formula, family, x_var, group_var,
                        color_var, facet_var, n_data_points) {
   y_var <- all.vars(formula)[1]
-  id_var <- design$id
-  between_vars <- names(design$between)
-  within_vars <- names(design$within)
+
+  id_var <- ".PowR_id"
+
+  between_vars <- .extract_plot_vars(design$between)
+  within_vars <- .extract_plot_vars(design$within)
 
   if (is.null(group_var)) {
     group_var <- id_var
@@ -266,10 +303,15 @@ plot_sim_model.PowRPriori <- function(object, type = "power_curve", design = NUL
         ggplot2::theme_minimal() + ggplot2::theme(legend.position = "bottom")
     }
   } else {
-    # Cross-sectional plot (keine within-Variablen)
+    # Cross-sectional plot (no within-variables)
     if (is.null(x_var)) {
-      x_var <- names(design$between)[1]
+      if (length(between_vars) > 0) {
+        x_var <- between_vars[1]
+      } else {
+        x_var <- id_var
+      }
     }
+
     p <- ggplot2::ggplot(data, ggplot2::aes(x = .data[[x_var]], y = .data[[y_var]])) +
       ggplot2::geom_jitter(width = 0.1, alpha = 0.2) +
       ggplot2::stat_summary(fun = mean, geom = "point", size = 4, shape = 18) +
@@ -284,4 +326,18 @@ plot_sim_model.PowRPriori <- function(object, type = "power_curve", design = NUL
   }
 
   return(p)
+}
+
+
+#' Internal Helper for Plotting Functions to Extract Variables from Design Object
+#'
+#' @param design_list A list from the design object (e.g., design$between)
+#'
+#' @returns A character vector of actual variable names
+#' @export
+#'
+#' @noRd
+.extract_plot_vars <- function(design_list) {
+  if (is.null(design_list)) return(character(0))
+  unname(unlist(lapply(design_list, names)))
 }

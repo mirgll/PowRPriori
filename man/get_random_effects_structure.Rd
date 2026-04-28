@@ -12,7 +12,7 @@ get_random_effects_structure(formula, design, family = "gaussian")
 \item{design}{A \code{PowRPriori_design} object created with \code{define_design()}.}
 
 \item{family}{The model family (\code{"gaussian"}, \code{"binomial"}, \code{"poisson"}).
-Determines if \code{sd_resid} should be included in the template.}
+Determines how the residual variance in a design needs to be handled. Defaults to \code{"gaussian"}.}
 }
 \value{
 Invisibly returns a nested list with placeholders, serving as a
@@ -26,8 +26,8 @@ to the console, where the user only needs to fill in placeholders (\code{...}) f
 }
 \examples{
 design <- define_design(
-  id = "subject",
+  sample_size = list(subject = 20),
   within = list(time = c("pre", "post"))
 )
-get_random_effects_structure(y ~ time + (time|subject), design)
+get_random_effects_structure(y ~ time + (time|subject), design, family = "gaussian")
 }

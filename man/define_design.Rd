@@ -2,49 +2,62 @@
 % Please edit documentation in R/utils.R
 \name{define_design}
 \alias{define_design}
-\title{Define the Experimental Structure of an Experimental Design}
+\title{Define the Structure of a Planned Experimental Design}
 \usage{
-define_design(id, between = NULL, within = NULL, nesting_vars = NULL)
+define_design(sample_size, between = NULL, within = NULL)
 }
 \arguments{
-\item{id}{A string specifying the name of the lowest-level unit of observation
-(e.g., \code{"subject"}, \code{"pupil"}, \code{plot_of_land}).}
+\item{sample_size}{A named list specifying the building blocks and dimensions of the
+planned study sample (e.g. \code{list(class = 10, pupil = 20)}). This dictates which
+analysis units exist and the number of elements within each unit.}
 
-\item{between}{A list of between-subject factors. Can be a simple list (for
-individual assignment) or a nested list (e.g., \code{list(class = list(group = ...))})
-for group-level assignment.}
+\item{between}{A list of between-subject variables. These are variables where a given
+unit is assigned to exactly one level of the variable (e.g., participants or
+entire clusters being assigned to either an intervention or a control group).}
 
-\item{within}{A list of within-subject factors. Each \code{id} will be measured
-at every level of these factors.}
-
-\item{nesting_vars}{A list of variables that are only used for grouping in the
-random effects structure (e.g., \code{(1|school/class)}).}
+\item{within}{A list of within-subject variables. These are variables where all levels
+are observed within the same unit (e.g., repeated pre- and post-measurements within participants).}
 }
 \value{
-A \code{PowRPriori_design} object, which is a list containing the design specifications.
+A \code{PowRPriori_design} object containing the parsed design specifications.
 }
 \description{
-This is the primary setup function for any power simulation. It creates a
-special \code{PowRPriori_design} object that contains all the necessary information
-about the variables and structure of your study.
+This is the primary setup function for any power simulation in \code{PowRPriori}.
+It creates a special \code{PowRPriori_design} object that contains all the necessary
+information about the variables, the hierarchical structure, and the sample size
+of a planned study.
 }
 \details{
-Variables can be specified as different types. Nominal scale variables (e.g. group with levels "control" and "treatment")
-can be specified as factors (\code{group = factor(c("control", "treatment"))}) or as character vectors (\code{c("control", "treatment")}),
-in which case they are automatically converted to factors later on. Continuous variables can  be specified via mean
-and standard deviation (\code{test_score = list(mean = 10, sd = 5)}). Additionally, variables can also be defined as numerical vectors
-(\code{predictor = 1:4}).
+\strong{Variable Specification:}
+Variables can be specified in different formats depending on their scale:
+Nominal variables (e.g. a group variable with levels "control" and "treatment")
+can be specified as factors (\code{group = factor(c("control", "treatment"))}) or
+as character vectors (\code{group = c("control", "treatment")}), which are automatically
+converted to factors. Continuous variables can be specified via their expected mean
+and standard deviation (\code{test_score = list(mean = 10, sd = 5)}). Additionally,
+variables can be defined as fixed numerical vectors (\code{predictor = 1:4}).
 
-The \code{between} argument offers a degree of flexibility. For simple designs, you can
-provide a "flat" list of factors. For complex designs like cluster-randomized
-trials, you can provide a hierarchical list to specify the level of
-assignment (see examples). For a full tutorial, see the package vignette:
-\code{vignette("Workflow-Example", package = "PowRPriori")}
+\strong{Assignment of Variables:}
+By default, if \code{between} variables are specified directly as a simple list
+(e.g., \code{between = list(treatment = c("A", "B"))}), they are randomized at the
+lowest level of the design (individual assignment).
+If a \code{between} variable should be assigned at a higher cluster level
+(e.g., cluster-randomization at the class level), it must be wrapped in a named list
+corresponding to that specific analysis unit. You do not need to mimic the full hierarchical
+structure of your design here (e.g., no need to write school = list(class = list(...))).
+Simply wrap the predictor in a single list named after the exact cluster level it belongs to
+(see the nested design example below).
+
+\code{within} variables, on the other hand, are always crossed with the level-1
+analysis units, effectively creating repeated measures for the lowest level.
+
+For a full tutorial and more complex design structures, see the package vignette:
+\code{vignette("Workflow-Example", package = "PowRPriori")}.
 }
 \examples{
 # Simple 2x2 mixed design
 simple_design <- define_design(
-  id = "subject",
+  sample_size = list(subject = 20),
   between = list(group = c("Control", "Treatment")),
   within = list(time = c("pre", "post"))
 )
@@ -52,10 +65,11 @@ simple_design <- define_design(
 # A nested (cluster-randomized) design where the intervention
 # is assigned at the class level.
 nested_design <- define_design(
-  id = "pupil",
+  sample_size = list(class = 10,
+                      pupil = 20),
   between = list(
-    class = list(intervention = c("yes", "no"))
-  ),
-  nesting_vars = list(class = factor(1:10))
+    class = list(intervention = c("yes", "no")),
+    pupil = list(support = c("yes", "no"))
+  )
 )
 }

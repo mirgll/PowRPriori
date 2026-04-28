@@ -14,12 +14,13 @@ power_sim(
   overall_variance = NULL,
   family = "gaussian",
   adjust_p_value = "BH",
+  center = "auto",
   power_crit = 0.8,
-  n_start,
+  along = NULL,
+  n_start = NULL,
   n_increment,
   max_simulation_steps = 100,
   n_issue_stop_prop = 0.2,
-  n_is_total = TRUE,
   n_sims = 2000,
   alpha = 0.05,
   parallel_plan = "multisession"
@@ -32,7 +33,7 @@ power_sim(
 
 \item{test_parameter}{A character vector of the variable names to test for power.
 If \code{NULL} (default), power is calculated for all fixed effects except the intercept. Note: The parameter names need to
-comply with the names expected by the model. Correctly naming of the variables is aided by the output of the \code{get_fixed_effects_structure()} helper function.}
+comply with the names expected by the model. Correctly naming the variables is aided by the output of the \code{get_fixed_effects_structure()} helper function.}
 
 \item{fixed_effects}{A named list of the fixed-effects coefficients. It is highly
 recommended to generate this using \code{get_fixed_effects_structure()} or
@@ -51,12 +52,20 @@ defining simple random-intercept models. Must be used with \code{overall_varianc
 or \code{"poisson"} (for poisson GLMMs).}
 
 \item{adjust_p_value}{Controls how p-values in the data simulation are adjusted when power is calculated for more than
-one parameter (as specified in \code{test_paramter}). Possible values are the same as in the function \code{p.adjust}. Defaults to "BH", which is the
+one parameter (as specified in \code{test_parameter}). Possible values are the same as in the function \code{p.adjust}. Defaults to "BH", which is the
 Benjamini-Hochberg correction. Setting this to \code{FALSE} disables p-value adjustment, although this is discouraged.}
+
+\item{center}{Controls if the simulation should automatically center predictors. Defaults to
+\code{"auto"}, which extracts the centering attribute (if present) from the \code{fixed_effects} list. Set to \code{TRUE}
+to force mean-centering, or \code{FALSE} to disable it.}
 
 \item{power_crit}{The desired statistical power level (e.g., 0.80 for 80\%).}
 
-\item{n_start}{The starting sample size for the simulation.}
+\item{along}{A string specifying the sample size variable that the power analysis should be based on. Must be present in the
+\code{sample_size} variable of the \code{design} parameter.}
+
+\item{n_start}{The starting sample size for the simulation. Defaults to \code{NULL}, in which case the number of the \code{along} parameter
+specified in the \code{design} parameter object is used.}
 
 \item{n_increment}{The step size for increasing the sample size in each iteration.}
 
@@ -65,10 +74,6 @@ sample size steps to prevent infinite loops. Defaults to 100 steps.}
 
 \item{n_issue_stop_prop}{The proportion of model issues (e.g., singular fits,
 non-convergence) at which the simulation will be automatically canceled. Defaults to a proportion of 20\%.}
-
-\item{n_is_total}{Boolean that controls how sample sizes are interpreted. If \code{TRUE}
-(default), \code{n_start} refers to the total sample size. If \code{FALSE}, it refers to
-the sample size per cell (see \code{define_design()} for details on nested designs).}
 
 \item{n_sims}{The number of simulations to run for each sample size step. Defaults to 2000.}
 
@@ -96,7 +101,7 @@ vignette for a more detailed description of the complete workflow for using this
 \examples{
 
   design <- define_design(
-    id = "subject",
+    sample_size = list(subject = 20),
     between = list(group = c("Control", "Treatment")),
     within = list(time = c("pre", "post"))
   )
@@ -119,7 +124,7 @@ vignette for a more detailed description of the complete workflow for using this
     fixed_effects = fixed_effects,
     random_effects = random_effects,
     test_parameter = "groupTreatment:timepost",
-    n_start = 20,
+    center = TRUE,
     n_increment = 5,
     n_sims = 100, # Use low n_sims for quick examples
     parallel_plan = "multisession"
