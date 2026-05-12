@@ -65,10 +65,12 @@
 #'     random_effects = random_effects,
 #'     test_parameter = "groupTreatment:timepost",
 #'     center = TRUE,
-#'     n_start = 20,
+#'     n_start = 100,
 #'     n_increment = 5,
-#'     n_sims = 100, # Using a smaller n_sims for a quick example
-#'     parallel_plan = "multisession"
+#'     #The parameters below are defined here to ensure low runtime of the example. Adapt these parameters!
+#'     n_sims = 10,
+#'     max_simulation_steps = 1,
+#'     parallel_plan = "sequential"
 #'   )
 #'
 #'   # Power curve
@@ -334,7 +336,6 @@ plot_sim_model.PowRPriori <- function(object, type = "power_curve", design = NUL
 #' @param design_list A list from the design object (e.g., design$between)
 #'
 #' @returns A character vector of actual variable names
-#' @export
 #'
 #' @noRd
 .extract_plot_vars <- function(design_list) {

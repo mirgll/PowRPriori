@@ -90,8 +90,11 @@
 #'     test_parameter = "groupTreatment:timepost",
 #'     center = TRUE,
 #'     n_increment = 5,
-#'     n_sims = 100, # Use low n_sims for quick examples
-#'     parallel_plan = "multisession"
+#'     n_start = 100,
+#'     #The parameters below are defined here to ensure low runtime of the example. Adapt these parameters!
+#'     n_sims = 10,
+#'     max_simulation_steps = 1,
+#'     parallel_plan = "sequential"
 #'   )
 #'
 #'   summary(power_results)

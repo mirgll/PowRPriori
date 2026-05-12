@@ -133,10 +133,11 @@ plot_sim_model(
     random_effects = random_effects,
     test_parameter = "groupTreatment:timepost",
     center = TRUE,
-    n_start = 20,
+    n_start = 100,
     n_increment = 5,
-    n_sims = 100, # Using a smaller n_sims for a quick example
-    parallel_plan = "multisession"
+    n_sims = 10, # Using a smaller n_sims for a quick example
+    max_simulation_steps = 1, # Using this for a quick example as well
+    parallel_plan = "sequential"
   )
 
   # Power curve

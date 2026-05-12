@@ -15,6 +15,6 @@
 A tibble (data frame) with predictor variables.
 }
 \description{
-An internal helper function that takes the design specification and an lme4-sytle formula to generate a
+An internal helper function that takes the design specification and an lme4-style formula to generate a
 design matrix representing the structure of the experimental design.
 }
